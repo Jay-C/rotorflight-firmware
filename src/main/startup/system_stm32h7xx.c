@@ -83,6 +83,22 @@ void forcedSystemResetWithoutDisablingCaches(void);
 #define HSI_VALUE    ((uint32_t)64000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
+#if !defined  (STM32H7_REV_Y_CLOCK_LEVEL)
+#define STM32H7_REV_Y_CLOCK_LEVEL 2
+#endif
+
+#if !defined  (STM32H7_REV_X_CLOCK_LEVEL)
+#define STM32H7_REV_X_CLOCK_LEVEL 2
+#endif
+
+#if !defined  (STM32H7_REV_B_CLOCK_LEVEL)
+#define STM32H7_REV_B_CLOCK_LEVEL 2
+#endif
+
+#if !defined  (STM32H7_REV_V_CLOCK_LEVEL)
+#define STM32H7_REV_V_CLOCK_LEVEL 6
+#endif
+
 
 /**
   * @}
@@ -190,6 +206,8 @@ typedef struct pllConfig_s {
     uint8_t p;
     uint8_t q;
     uint8_t r;
+    uint32_t vco;
+    uint32_t rge;
     uint32_t vos;
 } pllConfig_t;
 
@@ -207,27 +225,130 @@ typedef struct pllConfig_s {
         400 420 440 460 (Rev.Y & V ends here) 480 500 520 540
  */
 
-// 400MHz for Rev.Y (and Rev.X)
-pllConfig_t pll1ConfigRevY = {
-    .clockMhz = 400,
-    .m = 4,
-    .n = 400,
-    .p = 2,
-    .q = 8,
-    .r = 5,
-    .vos = PWR_REGULATOR_VOLTAGE_SCALE1
+pllConfig_t pll1Configs[] =
+{
+    // 240MHz
+    {
+        .clockMhz = 240,
+        .m = 5,
+        .n = 96,
+        .p = 2,
+        .q = 5,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE2
+    },
+    // 320MHz
+    {
+        .clockMhz = 320,
+        .m = 5,
+        .n = 128,
+        .p = 2,
+        .q = 6,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE2
+    },
+    // 400MHz for Rev.Y and Rev.X
+    {
+        .clockMhz = 400,
+        .m = 5,
+        .n = 160,
+        .p = 2,
+        .q = 8,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE1
+    },
+    // 420MHz
+    {
+        .clockMhz = 420,
+        .m = 5,
+        .n = 168,
+        .p = 2,
+        .q = 8,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE1
+    },
+    // 440MHz
+    {
+        .clockMhz = 440,
+        .m = 5,
+        .n = 176,
+        .p = 2,
+        .q = 8,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 460MHz
+    {
+        .clockMhz = 460,
+        .m = 5,
+        .n = 184,
+        .p = 2,
+        .q = 8,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 480MHz for Rev.V
+    {
+        .clockMhz = 480,
+        .m = 5,
+        .n = 192,
+        .p = 2,
+        .q = 9,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 500Hz
+    {
+        .clockMhz = 500,
+        .m = 5,
+        .n = 200,
+        .p = 2,
+        .q = 10,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 520Hz
+    {
+        .clockMhz = 520,
+        .m = 5,
+        .n = 208,
+        .p = 2,
+        .q = 11,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 540Hz
+    {
+        .clockMhz = 540,
+        .m = 5,
+        .n = 216,
+        .p = 2,
+        .q = 12,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
 };
 
-// 480MHz for Rev.V
-pllConfig_t pll1ConfigRevV = {
-    .clockMhz = 480,
-    .m = 4,
-    .n = 480,
-    .p = 2,
-    .q = 8,
-    .r = 5,
-    .vos = PWR_REGULATOR_VOLTAGE_SCALE0
-};
 
 // HSE clock configuration, originally taken from
 // STM32Cube_FW_H7_V1.3.0/Projects/STM32H743ZI-Nucleo/Examples/RCC/RCC_ClockConfig/Src/main.c
@@ -236,6 +357,7 @@ static void SystemClockHSE_Config(void)
 {
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    int level = 0;
 
 #ifdef notdef
     // CSI has been disabled at SystemInit().
@@ -251,7 +373,25 @@ static void SystemClockHSE_Config(void)
     }
 #endif
 
-    pllConfig_t *pll1Config = (HAL_GetREVID() == REV_ID_V) ? &pll1ConfigRevV : &pll1ConfigRevY;
+    switch (HAL_GetREVID()) {
+      case REV_ID_Y:
+        level = STM32H7_REV_Y_CLOCK_LEVEL;
+        break;
+      case REV_ID_B:
+        level = STM32H7_REV_B_CLOCK_LEVEL;
+        break;
+      case REV_ID_X:
+        level = STM32H7_REV_X_CLOCK_LEVEL;
+        break;
+      case REV_ID_V:
+        level = STM32H7_REV_V_CLOCK_LEVEL;
+        break;
+      default:
+        level = 0;
+        break;
+    }
+
+    pllConfig_t *pll1Config = &pll1Configs[level];
 
     // Configure voltage scale.
     // It has been pre-configured at PWR_REGULATOR_VOLTAGE_SCALE1,
@@ -296,8 +436,8 @@ static void SystemClockHSE_Config(void)
     RCC_OscInitStruct.PLL.PLLQ = pll1Config->q;
     RCC_OscInitStruct.PLL.PLLR = pll1Config->r;
 
-    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLVCOSEL = pll1Config->vco;
+    RCC_OscInitStruct.PLL.PLLRGE = pll1Config->rge;
 
     HAL_StatusTypeDef status = HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
@@ -337,6 +477,7 @@ static void SystemClockHSE_Config(void)
         RCC_CLOCKTYPE_PCLK1 | \
         RCC_CLOCKTYPE_PCLK2  | \
         RCC_CLOCKTYPE_D3PCLK1);
+
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK; // = PLL1P = 400
     RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1; // = PLL1P(400) / 1 = 400
     RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;   // = SYSCLK(400) / 2 = 200
@@ -384,27 +525,20 @@ void SystemClock_Config(void)
     SystemClockHSE_Config();
 
     /*activate CSI clock mondatory for I/O Compensation Cell*/
-
     __HAL_RCC_CSI_ENABLE() ;
 
     /* Enable SYSCFG clock mondatory for I/O Compensation Cell */
-
     __HAL_RCC_SYSCFG_CLK_ENABLE() ;
 
     /* Enables the I/O Compensation Cell */
-
     HAL_EnableCompensationCell();
-
     HandleStuckSysTick();
-
     HAL_Delay(10);
 
     // Configure peripheral clocks
-
     RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
 
     // Configure HSI48 as peripheral clock for USB
-
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     RCC_PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
@@ -412,7 +546,6 @@ void SystemClock_Config(void)
     // Configure CRS for dynamic calibration of HSI48
     // While ES0392 Rev 5 "STM32H742xI/G and STM32H743xI/G device limitations" states CRS not working for REV.Y,
     // it is always turned on as it seems that it has no negative effect on clock accuracy.
-
     RCC_CRSInitTypeDef crsInit = {
         .Prescaler = RCC_CRS_SYNC_DIV1,
         .Source = RCC_CRS_SYNC_SOURCE_USB2,
@@ -471,7 +604,6 @@ void SystemClock_Config(void)
     //   HSE (hse_ck)
 
     // For the first cut, we use 100MHz from various sources
-
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SPI123|RCC_PERIPHCLK_SPI45|RCC_PERIPHCLK_SPI6;
     RCC_PeriphClkInit.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL;
     RCC_PeriphClkInit.Spi45ClockSelection = RCC_SPI45CLKSOURCE_D2PCLK1;
@@ -496,11 +628,11 @@ void SystemClock_Config(void)
 #ifdef USE_SDCARD_SDIO
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
     RCC_PeriphClkInit.PLL2.PLL2M = 5;
-    RCC_PeriphClkInit.PLL2.PLL2N = 500;
-    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 500Mhz
-    RCC_PeriphClkInit.PLL2.PLL2Q = 3; // 266Mhz - 133Mhz can be derived from this for for QSPI if flash chip supports the speed.
-    RCC_PeriphClkInit.PLL2.PLL2R = 4; // 200Mhz HAL LIBS REQUIRE 200MHZ SDMMC CLOCK, see HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
-    RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
+    RCC_PeriphClkInit.PLL2.PLL2N = 160; // 800MHz
+    RCC_PeriphClkInit.PLL2.PLL2P = 3;   // 266Mhz
+    RCC_PeriphClkInit.PLL2.PLL2Q = 3;   // 266Mhz - 133Mhz can be derived from this for for QSPI if flash chip supports the speed.
+    RCC_PeriphClkInit.PLL2.PLL2R = 4;   // 200Mhz HAL LIBS REQUIRE 200MHZ SDMMC CLOCK, see HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
+    RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;  // 5MHz input
     RCC_PeriphClkInit.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     RCC_PeriphClkInit.PLL2.PLL2FRACN = 0;
     RCC_PeriphClkInit.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
