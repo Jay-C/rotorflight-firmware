@@ -62,7 +62,9 @@
   */
 
 #include "stm32h7xx.h"
+#include "system_stm32h7xx.h"
 #include "drivers/system.h"
+#include "drivers/persistent.h"
 #include "platform.h"
 #include "string.h"
 #include "common/utils.h"
@@ -158,6 +160,10 @@ void forcedSystemResetWithoutDisablingCaches(void);
   */
   uint32_t SystemCoreClock = 64000000;
   uint32_t SystemD2Clock = 64000000;
+#ifdef USE_OVERCLOCK
+  uint32_t SystemCoreClockLevel = 0;
+#endif
+
   const  uint8_t D1CorePrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
@@ -323,11 +329,35 @@ pllConfig_t pll1Configs[] =
         .rge = RCC_PLL1VCIRANGE_2,
         .vos = PWR_REGULATOR_VOLTAGE_SCALE0
     },
+    // 510Hz
+    {
+        .clockMhz = 510,
+        .m = 5,
+        .n = 204,
+        .p = 2,
+        .q = 11,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
     // 520Hz
     {
         .clockMhz = 520,
         .m = 5,
         .n = 208,
+        .p = 2,
+        .q = 11,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 530Hz
+    {
+        .clockMhz = 530,
+        .m = 5,
+        .n = 212,
         .p = 2,
         .q = 11,
         .r = 5,
@@ -347,8 +377,56 @@ pllConfig_t pll1Configs[] =
         .rge = RCC_PLL1VCIRANGE_2,
         .vos = PWR_REGULATOR_VOLTAGE_SCALE0
     },
+    // 550Hz
+    {
+        .clockMhz = 550,
+        .m = 5,
+        .n = 220,
+        .p = 2,
+        .q = 12,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
+    // 560Hz
+    {
+        .clockMhz = 560,
+        .m = 5,
+        .n = 224,
+        .p = 2,
+        .q = 13,
+        .r = 5,
+        .vco = RCC_PLL1VCOWIDE,
+        .rge = RCC_PLL1VCIRANGE_2,
+        .vos = PWR_REGULATOR_VOLTAGE_SCALE0
+    },
 };
 
+#ifdef USE_OVERCLOCK
+void SystemCoreClockInitLevel(void)
+{
+    uint32_t clockLevel = persistentObjectRead(PERSISTENT_OBJECT_OVERCLOCK_LEVEL);
+
+    if (clockLevel > ARRAYLEN(pll1Configs))
+        return;
+
+    /* PLL setting for overclocking */
+    SystemCoreClockLevel = clockLevel;
+}
+
+void OverclockRebootIfNecessary(uint32_t clockLevel)
+{
+    if (clockLevel > ARRAYLEN(pll1Configs))
+        return;
+
+    if (SystemCoreClockLevel != clockLevel) {
+        persistentObjectWrite(PERSISTENT_OBJECT_OVERCLOCK_LEVEL, clockLevel);
+        __disable_irq();
+        NVIC_SystemReset();
+    }
+}
+#endif
 
 // HSE clock configuration, originally taken from
 // STM32Cube_FW_H7_V1.3.0/Projects/STM32H743ZI-Nucleo/Examples/RCC/RCC_ClockConfig/Src/main.c
@@ -358,6 +436,10 @@ static void SystemClockHSE_Config(void)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     int level = 0;
+
+#ifdef USE_OVERCLOCK
+    SystemCoreClockInitLevel();
+#endif
 
 #ifdef notdef
     // CSI has been disabled at SystemInit().
@@ -373,22 +455,29 @@ static void SystemClockHSE_Config(void)
     }
 #endif
 
-    switch (HAL_GetREVID()) {
-      case REV_ID_Y:
-        level = STM32H7_REV_Y_CLOCK_LEVEL;
-        break;
-      case REV_ID_B:
-        level = STM32H7_REV_B_CLOCK_LEVEL;
-        break;
-      case REV_ID_X:
-        level = STM32H7_REV_X_CLOCK_LEVEL;
-        break;
-      case REV_ID_V:
-        level = STM32H7_REV_V_CLOCK_LEVEL;
-        break;
-      default:
-        level = 0;
-        break;
+#ifdef USE_OVERCLOCK
+    if (SystemCoreClockLevel) {
+        level = SystemCoreClockLevel - 1;
+    } else
+#endif
+    {
+        switch (HAL_GetREVID()) {
+          case REV_ID_Y:
+            level = STM32H7_REV_Y_CLOCK_LEVEL;
+            break;
+          case REV_ID_B:
+            level = STM32H7_REV_B_CLOCK_LEVEL;
+            break;
+          case REV_ID_X:
+            level = STM32H7_REV_X_CLOCK_LEVEL;
+            break;
+          case REV_ID_V:
+            level = STM32H7_REV_V_CLOCK_LEVEL;
+            break;
+          default:
+            level = 0;
+            break;
+        }
     }
 
     pllConfig_t *pll1Config = &pll1Configs[level];
