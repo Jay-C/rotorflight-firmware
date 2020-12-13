@@ -94,7 +94,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CO
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .sample_rate = BLACKBOX_RATE_QUARTER,
     .device = DEFAULT_BLACKBOX_DEVICE,
-    .fields_disabled_mask = 0, // default log all fields
+    .fields_disabled_mask = FLIGHT_LOG_FIELDS_DISABLED_DEFAULT,
     .mode = BLACKBOX_MODE_NORMAL
 );
 
@@ -246,6 +246,18 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"debug",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG_LOG)},
     {"debug",       3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG_LOG)},
 
+    /* Extended 32bit debug */
+#ifdef USE_DEBUG32
+    {"debug32",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     4, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     5, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     6, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+    {"debug32",     7, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),     .Pencode = ENCODING(SIGNED_VB), CONDITION(DEBUG32_LOG)},
+#endif
+
 };
 
 #ifdef USE_GPS
@@ -327,6 +339,9 @@ typedef struct blackboxMainState_s {
     uint16_t rssi;
 
     int16_t debug[DEBUG16_VALUE_COUNT];
+#ifdef USE_DEBUG32
+    int32_t debug32[DEBUG32_VALUE_COUNT];
+#endif
 
 } blackboxMainState_t;
 
@@ -491,6 +506,13 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case CONDITION(DEBUG_LOG):
         return (debugMode != DEBUG_NONE) && isFieldEnabled(FIELD_SELECT(DEBUG_LOG));
 
+    case CONDITION(DEBUG32_LOG):
+#ifdef USE_DEBUG32
+        return (debugMode != DEBUG_NONE) && isFieldEnabled(FIELD_SELECT(DEBUG32_LOG));
+#else
+        return false;
+#endif
+
     case CONDITION(NEVER):
         return false;
 
@@ -647,6 +669,13 @@ static void writeIntraframe(void)
         blackboxWriteSigned16VBArray(blackboxCurrent->debug, DEBUG16_VALUE_COUNT);
     }
 
+#ifdef USE_DEBUG32
+    // Write extended debug
+    if (testBlackboxCondition(CONDITION(DEBUG32_LOG))) {
+        blackboxWriteSignedVBArray(blackboxCurrent->debug32, DEBUG32_VALUE_COUNT);
+    }
+#endif
+
     //Rotate our history buffers:
 
     //The current state becomes the new "before" state
@@ -782,6 +811,14 @@ static void writeInterframe(void)
     if (testBlackboxCondition(CONDITION(DEBUG_LOG))) {
         blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, debug), DEBUG16_VALUE_COUNT);
     }
+
+#ifdef USE_DEBUG32
+    if (testBlackboxCondition(CONDITION(DEBUG32_LOG))) {
+        int32_t deltas[DEBUG32_VALUE_COUNT];
+        arraySubInt32(deltas, blackboxCurrent->debug32, blackboxLast->debug32, DEBUG32_VALUE_COUNT);
+        blackboxWriteSignedVBArray(deltas, DEBUG32_VALUE_COUNT);
+    }
+#endif
 
     //Rotate our history buffers
     blackboxHistory[2] = blackboxHistory[1];
@@ -1095,6 +1132,12 @@ static void loadMainState(timeUs_t currentTimeUs)
     for (int i = 0; i < DEBUG16_VALUE_COUNT; i++) {
         blackboxCurrent->debug[i] = debug[i];
     }
+
+#ifdef USE_DEBUG32
+    for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+        blackboxCurrent->debug32[i] = debug32[i];
+    }
+#endif
 
 #else
     UNUSED(currentTimeUs);

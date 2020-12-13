@@ -406,6 +406,7 @@ extern uint8_t _dmaram_end__;
 #define USE_RX_MSP_OVERRIDE
 #define USE_RX_LINK_UPLINK_POWER
 #define USE_CRSF_V3
+#define USE_DEBUG32
 #endif
 
 #if (TARGET_FLASH_SIZE > 512)
