@@ -809,9 +809,23 @@ STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRat
         float acErrorRate = 0;
         const float gmaxac = setpointLpf + 2 * setpointHpf;
         const float gminac = setpointLpf - 2 * setpointHpf;
+
+        if (axis == FD_ROLL) {
+            DEBUG32_SET(DEBUG_AC_ERROR, 0, gyroRate * 1000);
+            DEBUG32_SET(DEBUG_AC_ERROR, 1, *currentPidSetpoint * 1000);
+            DEBUG32_SET(DEBUG_AC_ERROR, 2, gmaxac * 1000);
+            DEBUG32_SET(DEBUG_AC_ERROR, 3, gminac * 1000);
+            DEBUG32_SET(DEBUG_AC_CORRECTION, 0, gyroRate * 1000);
+            DEBUG32_SET(DEBUG_AC_CORRECTION, 1, *currentPidSetpoint * 1000);
+        }
+
         if (gyroRate >= gminac && gyroRate <= gmaxac) {
             const float acErrorRate1 = gmaxac - gyroRate;
             const float acErrorRate2 = gminac - gyroRate;
+            if (axis == FD_ROLL) {
+                DEBUG32_SET(DEBUG_AC_ERROR, 4, acErrorRate1 * 1000);
+                DEBUG32_SET(DEBUG_AC_ERROR, 5, acErrorRate2 * 1000);
+            }
             if (acErrorRate1 * axisError[axis] < 0) {
                 acErrorRate = acErrorRate1;
             } else {
@@ -824,6 +838,11 @@ STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRat
             acErrorRate = (gyroRate > gmaxac ? gmaxac : gminac ) - gyroRate;
         }
 
+        if (axis == FD_ROLL) {
+            DEBUG32_SET(DEBUG_AC_ERROR, 6, acErrorRate * 1000);
+            DEBUG32_SET(DEBUG_AC_CORRECTION, 2, acErrorRate * 1000);
+        }
+
         // Check to ensure we are spooled up at a reasonable level
         if (isSpooledUp()) {
             axisError[axis] = constrainf(axisError[axis] + acErrorRate * dT, -acErrorLimit, acErrorLimit);
@@ -833,6 +852,10 @@ STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRat
             DEBUG_SET(DEBUG_AC_CORRECTION, axis, lrintf(acCorrection * 10));
             if (axis == FD_ROLL) {
                 DEBUG_SET(DEBUG_ITERM_RELAX, 3, lrintf(acCorrection * 10));
+                DEBUG32_SET(DEBUG_AC_ERROR, 7, acCorrection * 1000);
+                DEBUG32_SET(DEBUG_AC_CORRECTION, 3, axisError[axis] * 1000);
+                DEBUG32_SET(DEBUG_AC_CORRECTION, 4, acCorrection * 1000);
+                DEBUG32_SET(DEBUG_AC_CORRECTION, 5, *itermErrorRate * 1000);
             }
         }
 
