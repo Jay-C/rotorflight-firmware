@@ -76,11 +76,11 @@ const char pidNames[] =
     "YAW;"
     "LEVEL;";
 
-FAST_RAM_ZERO_INIT uint32_t targetPidLooptime;
 FAST_RAM_ZERO_INIT pidAxisData_t pidData[XYZ_AXIS_COUNT];
 
 static FAST_RAM_ZERO_INIT float dT;
 static FAST_RAM_ZERO_INIT float pidFrequency;
+static FAST_RAM_ZERO_INIT uint32_t pidLooptime;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 2);
 
@@ -146,13 +146,18 @@ void pgResetFn_pidProfiles(pidProfile_t *pidProfiles)
     }
 }
 
-static void pidSetTargetLooptime(uint32_t pidLooptime)
+uint32_t pidGetLooptime(void)
 {
-    targetPidLooptime = pidLooptime;
-    dT = targetPidLooptime * 1e-6f;
+    return pidLooptime;
+}
+
+static void pidSetLooptime(uint32_t looptime)
+{
+    pidLooptime = looptime;
+    dT = pidLooptime * 1e-6f;
     pidFrequency = 1.0f / dT;
 #ifdef USE_DSHOT
-    dshotSetPidLoopTime(targetPidLooptime);
+    dshotSetPidLoopTime(pidLooptime);
 #endif
 }
 
@@ -193,7 +198,7 @@ void pidInitFilters(const pidProfile_t *pidProfile)
 {
     STATIC_ASSERT(FD_YAW == 2, FD_YAW_incorrect); // ensure yaw axis is 2
 
-    if (targetPidLooptime == 0) {
+    if (pidLooptime == 0) {
         // no looptime set, so set all the filters to null
         ptermYawLowpassApplyFn = nullFilterApply;
         return;
@@ -318,7 +323,7 @@ void pidInitConfig(const pidProfile_t *pidProfile)
 
 void pidInit(const pidProfile_t *pidProfile)
 {
-    pidSetTargetLooptime(gyro.targetLooptime); // Initialize pid looptime
+    pidSetLooptime(gyro.targetLooptime); // Initialize pid looptime
     pidInitFilters(pidProfile);
     pidInitConfig(pidProfile);
 }
