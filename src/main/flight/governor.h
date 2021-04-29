@@ -28,6 +28,7 @@ typedef enum {
     GM_STANDARD,
     GM_MODE1,
     GM_MODE2,
+    GM_MODE3,
 } govMode_e;
 
 typedef enum {
@@ -65,6 +66,11 @@ typedef struct governorConfig_s {
     uint16_t gov_collective_ff_weight;
     uint16_t gov_ff_exponent;
     uint16_t gov_vbat_offset;
+    uint16_t gov_st_filter;
+    uint16_t gov_cs_filter;
+    uint16_t gov_cf_filter;
+    uint16_t gov_cg_filter;
+    uint16_t gov_calibration[3];
 } governorConfig_t;
 
 PG_DECLARE(governorConfig_t, governorConfig);

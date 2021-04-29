@@ -62,6 +62,12 @@
 #define GOV_RPM_INVALID_SPEED           1000
 #define GOV_RPM_INVALID_THROTTLE        0.10f
 
+// Feedforward variance threshold
+#define GOV_FF_VAR_THRESHOLD            0.001f
+
+// Minimum runtime for saving calibration
+#define GOV_CALIB_MIN_RUNTIME           30
+
 
 PG_REGISTER_WITH_RESET_TEMPLATE(governorConfig_t, governorConfig, PG_GOVERNOR_CONFIG, 0);
 
@@ -88,6 +94,10 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
     .gov_collective_ff_weight = 100,
     .gov_ff_exponent = 150,
     .gov_vbat_offset = 0,
+    .gov_st_filter = 1000,
+    .gov_cs_filter = 5000,
+    .gov_cf_filter = 2500,
+    .gov_cg_filter = 5000,
 );
 
 
@@ -164,15 +174,57 @@ static FAST_RAM_ZERO_INIT float govFFexponent;
 static FAST_RAM_ZERO_INIT float govBatOffset;
 
 
+//// Statistics
+
+static FAST_RAM_ZERO_INIT float stFilter;
+static FAST_RAM_ZERO_INIT float csFilter;
+static FAST_RAM_ZERO_INIT float cfFilter;
+static FAST_RAM_ZERO_INIT float cgFilter;
+
+static FAST_RAM_ZERO_INIT float hsValue;
+static FAST_RAM_ZERO_INIT float hsDiff;
+static FAST_RAM_ZERO_INIT float hsMean;
+static FAST_RAM_ZERO_INIT float hsVar;
+
+static FAST_RAM_ZERO_INIT float vtValue;
+static FAST_RAM_ZERO_INIT float vtDiff;
+static FAST_RAM_ZERO_INIT float vtMean;
+static FAST_RAM_ZERO_INIT float vtVar;
+
+static FAST_RAM_ZERO_INIT float cxValue;
+static FAST_RAM_ZERO_INIT float cxDiff;
+static FAST_RAM_ZERO_INIT float cxMean;
+static FAST_RAM_ZERO_INIT float cxVar;
+
+static FAST_RAM_ZERO_INIT float ffValue;
+static FAST_RAM_ZERO_INIT float ffDiff;
+static FAST_RAM_ZERO_INIT float ffMean;
+static FAST_RAM_ZERO_INIT float ffVar;
+
+static FAST_RAM_ZERO_INIT float hsvtCovar;
+static FAST_RAM_ZERO_INIT float cxffCovar;
+
+static FAST_RAM_ZERO_INIT float ccValue;
+static FAST_RAM_ZERO_INIT float csValue;
+static FAST_RAM_ZERO_INIT float cfValue;
+
+static FAST_RAM_ZERO_INIT float csEstimate;
+static FAST_RAM_ZERO_INIT float cfEstimate;
+
+static FAST_RAM_ZERO_INIT uint32_t stCount;
+
+
 //// Prototypes
 
 static void govPIDInit(void);
 static void govMode1Init(void);
 static void govMode2Init(void);
+static void govMode3Init(void);
 
 static float govPIDControl(void);
 static float govMode1Control(void);
 static float govMode2Control(void);
+static float govMode3Control(void);
 
 static void governorUpdateState(void);
 static void governorUpdatePassthrough(void);
@@ -278,12 +330,122 @@ static inline long govStateTime(void)
     return cmp32(millis(),govStateEntryTime);
 }
 
+static void govSaveCalibration(void)
+{
+    governorConfigMutable()->gov_calibration[0] = 1e6f * csEstimate;
+    governorConfigMutable()->gov_calibration[1] = 1e6f * cfEstimate;
+    governorConfigMutable()->gov_calibration[2] = 1e3f * cfEstimate / csEstimate;
+
+    saveConfigAndNotify();
+}
+
+static void govResetStats(void)
+{
+    vtValue   = cxValue   = 0;
+    ccValue   = csValue   = cfValue  = 0;
+    vtMean    = cxMean    = hsMean   = ffMean = 0;
+    vtDiff    = cxDiff    = hsDiff   = ffDiff = 0;
+    vtVar     = cxVar     = hsVar    = ffVar  = 0;
+    cxffCovar = hsvtCovar = 0;
+    stCount = 0;
+}
+
 static void govDebugStats(void)
 {
     DEBUG_SET(DEBUG_GOVERNOR,  0, govTargetHeadSpeed);
     DEBUG_SET(DEBUG_GOVERNOR,  1, govSetpoint);
     DEBUG_SET(DEBUG_GOVERNOR,  2, govPidSum * 1000);
     DEBUG_SET(DEBUG_GOVERNOR,  3, govFeedForward * 1000);
+}
+
+static void govUpdateStats(void)
+{
+    if (govOutput > 0.10f && govHeadSpeed > 100)
+    {
+        hsValue = govHeadSpeed;
+        vtValue = (govVoltage - govBatOffset) * govOutput;
+        cxValue = vtValue / hsValue;
+        ffValue = govFeedForward;
+
+        hsDiff = hsValue - hsMean;
+        vtDiff = vtValue - vtMean;
+        cxDiff = cxValue - cxMean;
+        ffDiff = ffValue - ffMean;
+
+        hsMean += hsDiff * stFilter;
+        vtMean += vtDiff * stFilter;
+        cxMean += cxDiff * stFilter;
+        ffMean += ffDiff * stFilter;
+
+        float tsFilter = 1.0f - stFilter;
+
+        hsVar = (hsDiff * hsDiff * stFilter + hsVar) * tsFilter;
+        vtVar = (vtDiff * vtDiff * stFilter + vtVar) * tsFilter;
+        cxVar = (cxDiff * cxDiff * stFilter + cxVar) * tsFilter;
+        ffVar = (ffDiff * ffDiff * stFilter + ffVar) * tsFilter;
+
+        hsvtCovar = (hsDiff * vtDiff * stFilter + hsvtCovar) * tsFilter;
+        cxffCovar = (cxDiff * ffDiff * stFilter + cxffCovar) * tsFilter;
+    }
+}
+
+static void govUpdateSpoolupStats(float govMain)
+{
+    if (govMain > 0.10f && govHeadSpeed > 100 &&
+        stCount < pidGetPidFrequency() * GOV_CALIB_MIN_RUNTIME)
+    {
+        // For analysis -- not used in the model
+        if (hsVar > 100) {
+            csValue = hsvtCovar / hsVar;
+            ccValue = vtMean - hsMean * csValue;
+        }
+
+        // Initial value for Cs
+        csEstimate = cxMean;
+
+        // Initial value for Cf
+        if (governorConfig()->gov_calibration[2] > 0)
+            cfEstimate = csEstimate * governorConfig()->gov_calibration[2] / 1000.0f;
+        else
+            cfEstimate = csEstimate;
+    }
+}
+
+static void govUpdateActiveStats(float govMain)
+{
+    bool mainCheck = true, hsCheck = true;
+
+    // throttle must be between 10%..90%
+    mainCheck = (govMain > 0.10f && govMain < 0.90f);
+
+    // Headspeed must be reasonable
+    if (govMode == GM_PASSTHROUGH)
+        hsCheck = (hsValue > 100);
+    else
+        hsCheck = (hsValue > govMaxHeadSpeed * 0.1f && hsValue < govMaxHeadSpeed * 1.1f);
+
+    // System must stay in linear & controllable area for the stats to be correct
+    if (mainCheck && hsCheck)
+    {
+        // Increment statistics count
+        stCount++;
+
+        if (ffVar > GOV_FF_VAR_THRESHOLD)
+            cfValue = cxffCovar / ffVar;
+        else
+            cfValue = cfEstimate;
+
+        cfValue = constrainf(cfValue, 0, 2*csEstimate);
+
+        if (cfValue > cfEstimate)
+            cfEstimate += (cfValue - cfEstimate) * ffVar * ffMean * cfFilter;
+        else
+            cfEstimate += (cfValue - cfEstimate) * ffVar * ffMean * cgFilter;
+
+        csValue = cxMean - ffMean * cfValue;
+
+        csEstimate += (csValue - csEstimate) * csFilter;
+    }
 }
 
 static void govUpdateInputs(void)
@@ -363,6 +525,7 @@ static void governorUpdatePassthrough(void)
     // Handle DISARM separately for SAFETY!
     if (!ARMING_FLAG(ARMED) || getBatteryCellCount() == 0) {
         govChangeState(GS_THROTTLE_OFF);
+        govResetStats();
     }
     else {
         switch (govState)
@@ -372,6 +535,10 @@ static void governorUpdatePassthrough(void)
                 govMain = 0;
                 if (!govThrottleLow)
                     govChangeState(GS_THROTTLE_IDLE);
+                else if (stCount > pidGetPidFrequency() * GOV_CALIB_MIN_RUNTIME) {
+                    govSaveCalibration();
+                    govResetStats();
+                }
                 break;
 
             // Throttle is IDLE, follow with a limited ramupup rate.
@@ -397,6 +564,8 @@ static void governorUpdatePassthrough(void)
                     govChangeState(GS_THROTTLE_IDLE);
                 else if (govMain >= govThrottle)
                     govChangeState(GS_ACTIVE);
+                else
+                    govUpdateSpoolupStats(govMain);
                 break;
 
             // Follow the throttle without ramp limits.
@@ -412,6 +581,8 @@ static void governorUpdatePassthrough(void)
                     else
                         govChangeState(GS_THROTTLE_IDLE);
                 }
+                else
+                    govUpdateActiveStats(govMain);
                 break;
 
             // Throttle is low. If it is a mistake, give a chance to recover.
@@ -467,6 +638,7 @@ static void governorUpdatePassthrough(void)
             // Should not be here
             default:
                 govChangeState(GS_THROTTLE_OFF);
+                govResetStats();
                 break;
         }
     }
@@ -503,6 +675,7 @@ static void governorUpdateState(void)
     // Handle DISARM separately for SAFETY!
     if (!ARMING_FLAG(ARMED) || getBatteryCellCount() == 0) {
         govChangeState(GS_THROTTLE_OFF);
+        govResetStats();
     }
     else {
         switch (govState)
@@ -513,6 +686,10 @@ static void governorUpdateState(void)
                 govSetpoint = 0;
                 if (!govThrottleLow)
                     govChangeState(GS_THROTTLE_IDLE);
+                else if (stCount > pidGetPidFrequency() * GOV_CALIB_MIN_RUNTIME) {
+                    govSaveCalibration();
+                    govResetStats();
+                }
                 break;
 
             // Throttle is IDLE, follow with a limited ramupup rate
@@ -547,6 +724,7 @@ static void governorUpdateState(void)
                 else {
                     govMain = govSpoolupCalc();
                     govSetpoint = rampLimit(govTargetHeadSpeed, govSetpoint, govSetpointSpoolupRate);
+                    govUpdateSpoolupStats(govMain);
                 }
                 break;
 
@@ -568,6 +746,7 @@ static void governorUpdateState(void)
                 } else {
                     govMain = govActiveCalc();
                     govSetpoint = rampLimit(govTargetHeadSpeed, govSetpoint, govSetpointTrackingRate);
+                    govUpdateActiveStats(govMain);
                 }
                 break;
 
@@ -665,6 +844,7 @@ static void governorUpdateState(void)
             // Should not be here
             default:
                 govChangeState(GS_THROTTLE_OFF);
+                govResetStats();
                 break;
         }
     }
@@ -805,6 +985,61 @@ static float govMode2Control(void)
 }
 
 
+/*
+ * Mode3: PIDF with physic modeling and parameter estimation
+ */
+
+static void govMode3Init(void)
+{
+    // Common PID gain
+    float pidGain = govNominalVoltage;
+
+    // Calculate Vk estimate from the model
+    float motorVk = govSetpoint * (cfEstimate * govFeedForward + csEstimate);
+
+    // Expected PID output
+    float pidTarget = (govOutput * (govVoltage - govBatOffset) - motorVk) / pidGain;
+
+    // Use govI to reach the target
+    govI = pidTarget - (govP + govD + govF);
+
+    // Realistic bounds
+    govI = constrainf(govI, -0.25f, 0.25f);
+}
+
+static float govMode3Control(void)
+{
+    float output;
+
+    // Common PID gain
+    float pidGain = govNominalVoltage;
+
+    // Calculate Vk estimate from the model
+    float motorVk = govSetpoint * (cfEstimate * govFeedForward + csEstimate);
+
+    // PID limits
+    govP = constrainf(govP, -0.25f, 0.25f);
+    govI = constrainf(govI, -0.25f, 0.25f);
+    govD = constrainf(govD, -0.25f, 0.25f);
+    govF = constrainf(govF,      0, 0.25f);
+
+    // Governor PID sum
+    govPidSum = govP + govI + govC + govD + govF;
+
+    // Generate throttle signal
+    output = (motorVk + pidGain * govPidSum) / (govVoltage - govBatOffset);
+
+    // Apply govC if output not saturated
+    if (!((output > 1 && govC > 0) || (output < GOV_MIN_THROTTLE_OUTPUT && govC < 0)))
+        govI += govC;
+
+    // Limit output to 10%..100%
+    output = constrainf(output, GOV_MIN_THROTTLE_OUTPUT, 1);
+
+    return output;
+}
+
+
 //// Interface functions
 
 void governorUpdate(void)
@@ -814,6 +1049,9 @@ void governorUpdate(void)
     {
         // Calculate all governor inputs
         govUpdateInputs();
+
+        // Update statistics
+        govUpdateStats();
 
         // Run state machine
         govStateUpdate();
@@ -859,6 +1097,13 @@ void governorInit(void)
                 govActiveInit  = govMode2Init;
                 govActiveCalc  = govMode2Control;
                 break;
+            case GM_MODE3:
+                govStateUpdate = governorUpdateState;
+                govSpoolupInit = govPIDInit;
+                govSpoolupCalc = govPIDControl;
+                govActiveInit  = govMode3Init;
+                govActiveCalc  = govMode3Control;
+                break;
         }
 
         govGearRatio    = (float)governorConfig()->gov_gear_ratio / 1000.0f;
@@ -895,6 +1140,11 @@ void governorInit(void)
         biquadFilterInitLPF(&govVoltageFilter, governorConfig()->gov_pwr_filter, pidGetLooptime());
         biquadFilterInitLPF(&govCurrentFilter, governorConfig()->gov_pwr_filter, pidGetLooptime());
         biquadFilterInitLPF(&govMotorRPMFilter, governorConfig()->gov_rpm_filter, pidGetLooptime());
+
+        stFilter = 1000.0f  / (pidGetPidFrequency() * governorConfig()->gov_st_filter);
+        csFilter = 1000.0f  / (pidGetPidFrequency() * governorConfig()->gov_cs_filter);
+        cfFilter = 10000.0f / (pidGetPidFrequency() * governorConfig()->gov_cf_filter);
+        cgFilter = 10000.0f / (pidGetPidFrequency() * governorConfig()->gov_cg_filter);
     }
 }
 
