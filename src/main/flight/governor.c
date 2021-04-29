@@ -352,6 +352,28 @@ static void govResetStats(void)
 
 static void govDebugStats(void)
 {
+#ifdef USE_DEBUG32
+
+#define DEBUG32U(value)  (debug32[index++] = (uint32_t)(value))
+#define DEBUG32S(value)  (debug32[index++] = (int32_t)(value))
+#define DEBUG32F(value)  (debug32[index++] = lrintf(value))
+
+    if (debugMode == DEBUG_GOVERNOR)
+    {
+        int index = 0;
+
+        DEBUG32F(govSetpoint * 1e3f);
+        DEBUG32F(govHeadSpeed * 1e3f);
+        DEBUG32F(govOutput * 1e6f);
+        DEBUG32F(govPidSum * 1e6f);
+        DEBUG32F(govP * 1e6f);
+        DEBUG32F(govI * 1e6f);
+        DEBUG32F(govD * 1e6f);
+        DEBUG32F(govF * 1e6f);
+    }
+
+#endif /* USE_DEBUG32 */
+
     DEBUG_SET(DEBUG_GOVERNOR,  0, govTargetHeadSpeed);
     DEBUG_SET(DEBUG_GOVERNOR,  1, govSetpoint);
     DEBUG_SET(DEBUG_GOVERNOR,  2, govPidSum * 1000);
