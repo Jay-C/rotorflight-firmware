@@ -93,13 +93,9 @@ typedef enum {
 
 typedef struct pidProfile_s {
     uint16_t yaw_lowpass_hz;                // Additional yaw filter when yaw axis too noisy
-    uint16_t dterm_lowpass_hz;              // Delta Filter in hz
-    uint16_t dterm_notch_hz;                // Biquad dterm notch hz
-    uint16_t dterm_notch_cutoff;            // Biquad dterm notch low cutoff
 
     pidf_t  pid[PID_ITEM_COUNT];
 
-    uint8_t dterm_filter_type;              // Filter selection for dterm
     uint8_t levelAngleLimit;                // Max angle in degrees in level mode
 
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
@@ -109,7 +105,6 @@ typedef struct pidProfile_s {
     uint16_t yawRateAccelLimit;             // yaw accel limiter for deg/sec/ms
     uint16_t rateAccelLimit;                // accel limiter roll/pitch deg/sec/ms
     uint16_t itermLimit;
-    uint16_t dterm_lowpass2_hz;             // Extra PT1 Filter on D in hz
     uint8_t iterm_rotation;                 // rotates iterm to translate world errors to local coordinate system
     uint8_t iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
@@ -122,9 +117,6 @@ typedef struct pidProfile_s {
     uint8_t abs_control_limit;              // Limit to the correction
     uint8_t abs_control_error_limit;        // Limit to the accumulated error
     uint8_t abs_control_cutoff;             // Cutoff frequency for path estimation in abs control
-    uint8_t dterm_filter2_type;             // Filter selection for 2nd dterm
-    uint16_t dyn_lpf_dterm_min_hz;
-    uint16_t dyn_lpf_dterm_max_hz;
     uint8_t ff_boost;                       // amount of high-pass filtered FF to add to FF, 100 means 100% added
     char profileName[MAX_PROFILE_NAME_LENGTH + 1]; // Descriptive name for profile
 
@@ -132,7 +124,6 @@ typedef struct pidProfile_s {
     uint8_t ff_max_rate_limit;              // Maximum setpoint rate percentage for FF
     uint8_t ff_spike_limit;                 // FF stick extrapolation lookahead period in ms
     uint8_t ff_smooth_factor;               // Amount of smoothing for interpolated FF steps
-    uint8_t dyn_lpf_curve_expo;             // set the curve for dynamic dterm lowpass filter
 
     // Tail (yaw) parameters
     uint16_t yaw_cyclic_ff_gain;             // Feedforward for cyclic into Yaw
@@ -188,10 +179,8 @@ float pidLevel(int axis, const pidProfile_t *pidProfile,
     const rollAndPitchTrims_t *angleTrim, float currentPidSetpoint);
 float calcHorizonLevelStrength(void);
 #endif
-void dynLpfDTermUpdate(float throttle);
 float pidGetPreviousSetpoint(int axis);
 float pidGetDT();
 float pidGetPidFrequency();
-float dynDtermLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo);
 float getCollectiveDeflectionLPF();
 float getCollectiveDeflectionHPF();
