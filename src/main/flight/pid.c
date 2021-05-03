@@ -116,7 +116,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .dterm_notch_hz = 0,
         .dterm_notch_cutoff = 0,
         .levelAngleLimit = 55,
-        .feedForwardTransition = 0,
         .yawRateAccelLimit = 0,
         .rateAccelLimit = 0,
         .horizon_tilt_effect = 75,
@@ -418,7 +417,6 @@ typedef struct pidCoefficient_s {
 
 static FAST_RAM_ZERO_INIT pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
 static FAST_RAM_ZERO_INIT float maxVelocity[XYZ_AXIS_COUNT];
-static FAST_RAM_ZERO_INIT float feedForwardTransition;
 static FAST_RAM_ZERO_INIT float levelGain, horizonGain, horizonTransition, horizonCutoffDegrees, horizonFactorRatio;
 static FAST_RAM_ZERO_INIT uint8_t horizonTiltExpertMode;
 static FAST_RAM_ZERO_INIT float itermLimit;
@@ -456,12 +454,6 @@ static FAST_RAM_ZERO_INIT ffInterpolationType_t ffFromInterpolatedSetpoint;
 
 void pidInitConfig(const pidProfile_t *pidProfile)
 {
-    if (pidProfile->feedForwardTransition == 0) {
-        feedForwardTransition = 0;
-    } else {
-        feedForwardTransition = 100.0f / pidProfile->feedForwardTransition;
-    }
-
     // Roll axis
     pidCoefficient[FD_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[FD_ROLL].P;
     pidCoefficient[FD_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[FD_ROLL].I;
