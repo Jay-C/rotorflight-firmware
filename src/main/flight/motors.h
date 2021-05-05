@@ -54,4 +54,3 @@ void motorUpdate(void);
 
 static inline void stopMotors(void) { motorStop(); }
 
-static inline float getHeadSpeed(void) { return getMotorRPMf(0); } // TODO
