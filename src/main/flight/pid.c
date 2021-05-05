@@ -151,6 +151,10 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .ff_smooth_factor = 37,
         .ff_boost = 15,
         .dyn_lpf_curve_expo = 5,
+        .yaw_cyclic_ff_gain = 0,
+        .yaw_collective_ff_gain = 300,
+        .yaw_collective_ff_impulse_gain = 300,
+        .yaw_collective_ff_impulse_freq = 100,
     );
 }
 
@@ -179,6 +183,14 @@ typedef union dtermLowpass_u {
 } dtermLowpass_t;
 
 static FAST_RAM_ZERO_INIT float previousPidSetpoint[XYZ_AXIS_COUNT];
+
+static FAST_RAM_ZERO_INIT float tailCyclicFFGain;
+static FAST_RAM_ZERO_INIT float tailCollectiveFFGain;
+static FAST_RAM_ZERO_INIT float tailCollectiveImpulseFFGain;
+
+static FAST_RAM_ZERO_INIT float collectiveDeflectionLPF;
+static FAST_RAM_ZERO_INIT float collectiveDeflectionHPF;
+static FAST_RAM_ZERO_INIT float collectiveImpulseFilterGain;
 
 static FAST_RAM_ZERO_INIT filterApplyFnPtr dtermNotchApplyFn;
 static FAST_RAM_ZERO_INIT biquadFilter_t dtermNotch[XYZ_AXIS_COUNT];
@@ -351,6 +363,14 @@ void pidInitFilters(const pidProfile_t *pidProfile)
 #endif
     ffBoostFactor = (float)pidProfile->ff_boost / 10.0f;
     ffSpikeLimitInverse = pidProfile->ff_spike_limit ? 1.0f / ((float)pidProfile->ff_spike_limit / 10.0f) : 0.0f;
+
+    // Collective input impulse high-pass filter
+    collectiveImpulseFilterGain = dT / (dT + (1 / (2 * M_PIf * pidProfile->yaw_collective_ff_impulse_freq / 100.0f)));
+
+    // Tail feedforward gains
+    tailCyclicFFGain = pidProfile->yaw_cyclic_ff_gain;
+    tailCollectiveFFGain = pidProfile->yaw_collective_ff_gain;
+    tailCollectiveImpulseFFGain = pidProfile->yaw_collective_ff_impulse_gain;
 }
 
 #ifdef USE_RC_SMOOTHING_FILTER
@@ -1035,6 +1055,33 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
         // Direct stick feedforward on all axis
         pidData[axis].F = pidCoefficient[axis].Kf * currentPidSetpoint;
 
+        // Calculate tail feedforward precompensation and add it to the yaw pidSum
+        if (axis == FD_YAW) {
+
+            // Get absolute value of collective stick throw
+            float collectiveDeflection = getCollectiveDeflection();
+
+            // Collective pitch impulse feed-forward for the main motor
+            collectiveDeflectionLPF += (collectiveDeflection - collectiveDeflectionLPF) * collectiveImpulseFilterGain;
+            collectiveDeflectionHPF = collectiveDeflection - collectiveDeflectionLPF;
+
+            // Feedforward collective components
+            float tailCollectiveFF = collectiveDeflection * tailCollectiveFFGain;
+            float tailCollectiveImpulseFF = collectiveDeflectionHPF * tailCollectiveImpulseFFGain;
+
+            // Feedforward cyclic component
+            float tailCyclicFF = getCyclicDeflection() * tailCyclicFFGain;
+
+            // Calculate total tail feedforward
+            float tailTotalFF = tailCollectiveFF + tailCollectiveImpulseFF + tailCyclicFF;
+
+            // Main rotor direction changes the feedforward sign
+            if (motorConfig()->mainRotorDir == DIR_CW)
+                pidData[FD_YAW].F -= tailTotalFF;
+            else
+                pidData[FD_YAW].F += tailTotalFF;
+        }
+
         // calculating the PID sum
         pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
     }
@@ -1108,5 +1155,15 @@ float pidGetDT()
 float pidGetPidFrequency()
 {
     return pidFrequency;
+}
+
+float getCollectiveDeflectionLPF()
+{
+    return collectiveDeflectionLPF;
+}
+
+float getCollectiveDeflectionHPF()
+{
+    return collectiveDeflectionHPF;
 }
 
