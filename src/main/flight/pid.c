@@ -103,6 +103,7 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(pidProfile_t, PID_PROFILE_COUNT, pidProfiles, PG
 void resetPidProfile(pidProfile_t *pidProfile)
 {
     RESET_CONFIG(pidProfile_t, pidProfile,
+        .profileName = { 0 },
         .pid = {
             [PID_ROLL] =  { 42, 85, 35, 90 },
             [PID_PITCH] = { 46, 90, 38, 95 },
@@ -110,10 +111,10 @@ void resetPidProfile(pidProfile_t *pidProfile)
             [PID_LEVEL] = { 50, 50, 75, 0 },
         },
         .yaw_lowpass_hz = 0,
-        .levelAngleLimit = 55,
+        .level_angle_limit = 55,
         .horizon_tilt_effect = 75,
         .horizon_tilt_expert_mode = false,
-        .itermLimit = 400,
+        .iterm_limit = 400,
         .iterm_rotation = false,
         .iterm_relax = ITERM_RELAX_RP,
         .iterm_relax_cutoff = ITERM_RELAX_CUTOFF_DEFAULT,
@@ -126,7 +127,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .abs_control_limit = 90,
         .abs_control_error_limit = 20,
         .abs_control_cutoff = 11,
-        .profileName = { 0 },
         .ff_interpolate_sp = FF_INTERPOLATE_AVG2,
         .ff_spike_limit = 60,
         .ff_max_rate_limit = 100,
@@ -281,7 +281,7 @@ void pidInitConfig(const pidProfile_t *pidProfile)
     pidCoefficient[FD_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[FD_YAW].D;
     pidCoefficient[FD_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[FD_YAW].F;
 
-    itermLimit = pidProfile->itermLimit;
+    itermLimit = pidProfile->iterm_limit;
     itermRotation = pidProfile->iterm_rotation;
 
 #if defined(USE_ITERM_RELAX)
