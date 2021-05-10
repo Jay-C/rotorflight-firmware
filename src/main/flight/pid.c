@@ -488,11 +488,12 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(GPS_RESCUE_MODE)) {
             currentPidSetpoint = pidLevelApply(axis, currentPidSetpoint);
         }
-#endif
-
 #ifdef USE_ACRO_TRAINER
-        // -----apply trainer
-        currentPidSetpoint = acroTrainerApply(axis, currentPidSetpoint);
+        else {
+            // -----apply trainer
+            currentPidSetpoint = acroTrainerApply(axis, currentPidSetpoint);
+        }
+#endif
 #endif
 
         // -----calculate gyro rate
