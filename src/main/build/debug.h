@@ -23,7 +23,12 @@
 #include "platform.h"
 
 #define DEBUG16_VALUE_COUNT 4
+
+#ifdef USE_GOV_DEBUG32
+#define DEBUG32_VALUE_COUNT 40
+#else
 #define DEBUG32_VALUE_COUNT 8
+#endif
 
 extern FAST_RAM_ZERO_INIT uint8_t debugMode;
 extern FAST_RAM_ZERO_INIT int16_t debug[DEBUG16_VALUE_COUNT];

@@ -370,6 +370,50 @@ static void govDebugStats(void)
         DEBUG32F(govI * 1e6f);
         DEBUG32F(govD * 1e6f);
         DEBUG32F(govF * 1e6f);
+
+#ifdef USE_GOV_DEBUG32
+        DEBUG32F(govError * 1e6f);
+        DEBUG32F(govThrottle * 1e6f);
+        DEBUG32F(govTargetHeadSpeed * 1e3f);
+
+        DEBUG32F(govCyclicFF * 1e6f);
+        DEBUG32F(govCollectiveFF * 1e6f);
+        DEBUG32F(govFeedForward * 1e6f);
+
+        DEBUG32F(govMotorRPM);
+        DEBUG32F(govVoltage * 1e3f);
+        DEBUG32F(govCurrent * 1e3f);
+
+        DEBUG32F(hsValue * 1e3f);
+        DEBUG32F(hsDiff * 1e3f);
+        DEBUG32F(hsMean * 1e3f);
+        DEBUG32F(hsVar * 1e0f);
+
+        DEBUG32F(vtValue * 1e3f);
+        DEBUG32F(vtDiff * 1e3f);
+        DEBUG32F(vtMean * 1e3f);
+        DEBUG32F(vtVar * 1e0f);
+
+        DEBUG32F(cxValue * 1e6f);
+        DEBUG32F(cxDiff * 1e6f);
+        DEBUG32F(cxMean * 1e6f);
+        DEBUG32F(cxVar * 1e12);
+
+        DEBUG32F(ffValue * 1e6f);
+        DEBUG32F(ffDiff * 1e6f);
+        DEBUG32F(ffMean * 1e6f);
+        DEBUG32F(ffVar * 1e6f);
+
+        DEBUG32F(hsvtCovar * 1e9f);
+        DEBUG32F(cxffCovar * 1e9f);
+
+        DEBUG32F(ccValue * 1e3f);
+        DEBUG32F(csValue * 1e6f);
+        DEBUG32F(cfValue * 1e6f);
+
+        DEBUG32F(csEstimate * 1e6f);
+        DEBUG32F(cfEstimate * 1e6f);
+#endif
     }
 
 #endif /* USE_DEBUG32 */
