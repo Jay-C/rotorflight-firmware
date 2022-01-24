@@ -27,7 +27,6 @@
 #include "config/feature.h"
 #include "config/config.h"
 
-#include "drivers/pwm_esc_detect.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "pg/rx.h"
@@ -36,6 +35,7 @@
 #include "io/serial.h"
 #include "telemetry/telemetry.h"
 #include "sensors/battery.h"
+#include "sensors/acceleration.h"
 
 
 void targetConfiguration(void)
@@ -45,6 +45,8 @@ void targetConfiguration(void)
     pidConfigMutable()->pid_process_denom = 16;
 
     motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_STANDARD;
+
+    accelerometerConfigMutable()->accZero.values.calibrationCompleted = 1;
 
     rxConfigMutable()->rcInterpolationChannels = 0; // Until NaN issue fixed
 
