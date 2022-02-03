@@ -58,6 +58,7 @@ FAST_RAM_ZERO_INIT static rpmFilterBank_t filterBank[RPM_FILTER_BANK_COUNT];
 
 FAST_RAM_ZERO_INIT static uint8_t activeBankCount;
 FAST_RAM_ZERO_INIT static uint8_t currentBank;
+FAST_RAM_ZERO_INIT static uint8_t debugBank;
 
 
 PG_REGISTER_WITH_RESET_FN(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 4);
@@ -160,6 +161,8 @@ void rpmFilterInit(const rpmFilterConfig_t *config)
             biquadFilterInit(&filt->notch[axis], filt->minHz, gyro.targetLooptime, filt->Q, FILTER_NOTCH);
         }
     }
+
+    debugBank = config->filter_bank_debug;
 }
 
 FAST_CODE_NOINLINE float rpmFilterGyro(int axis, float value)
@@ -200,6 +203,16 @@ void rpmFilterUpdate()
         DEBUG_SET(DEBUG_RPM_FILTER, 1, filt->motorIndex);
         DEBUG_SET(DEBUG_RPM_FILTER, 2, rpm);
         DEBUG_SET(DEBUG_RPM_FILTER, 3, freq * 10);
+
+        if (currentBank == debugBank) {
+            DEBUG32_SET(DEBUG_RPM_FILTER, 0, filt->motorIndex);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 1, rpm);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 2, freq * 1000);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 3, filt->rpmRatio * 1e6);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 4, filt->Q * 100);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 5, filt->minHz);
+            DEBUG32_SET(DEBUG_RPM_FILTER, 6, filt->maxHz);
+        }
 
         // Find next active bank - there must be at least one
         currentBank = (currentBank + 1) % activeBankCount;

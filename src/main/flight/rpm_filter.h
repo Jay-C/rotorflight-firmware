@@ -30,6 +30,8 @@ typedef struct rpmFilteConfig_s
     uint16_t filter_bank_min_hz[RPM_FILTER_BANK_COUNT];         // Filter minimum frequency
     uint16_t filter_bank_max_hz[RPM_FILTER_BANK_COUNT];         // Filter maximum frequency
 
+    uint8_t  filter_bank_debug;
+
 } rpmFilterConfig_t;
 
 

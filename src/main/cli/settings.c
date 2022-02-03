@@ -1498,6 +1498,7 @@ const clivalue_t valueTable[] = {
     { "gyro_rpm_filter_bank_notch_q",     VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_notch_q) },
     { "gyro_rpm_filter_bank_min_hz",      VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_min_hz) },
     { "gyro_rpm_filter_bank_max_hz",      VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_max_hz) },
+    { "gyro_rpm_filter_bank_debug",       VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 15 }, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_debug) },
 #endif
 
 #ifdef USE_RX_FLYSKY
