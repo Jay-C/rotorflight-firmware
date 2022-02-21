@@ -1,21 +1,18 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <stdint.h>
@@ -468,77 +465,16 @@ int timeval_sub(struct timespec *result, struct timespec *x, struct timespec *y)
 }
 
 
-// PWM part
-pwmOutputPort_t motors[MAX_SUPPORTED_MOTORS];
-static pwmOutputPort_t servos[MAX_SUPPORTED_SERVOS];
-
-// real value to send
-static int16_t idlePulse = 1000;
+pwmOutputPort_t servos[MAX_SUPPORTED_SERVOS];
 
 void servoDevInit(const servoDevConfig_t *servoConfig, uint8_t servoCount)
 {
-    printf("[SITL] Init servos num %d rate %d\n", servoCount,
+    printf("[SITL] Init servos count:%d rate:%d\n", servoCount,
             servoConfig->servoPwmRate);
-    UNUSED(servoConfig);
+
     for (uint8_t servoIndex = 0; servoIndex < servoCount; servoIndex++) {
         servos[servoIndex].enabled = true;
     }
-}
-
-static motorDevice_t motorPwmDevice; // Forward
-
-pwmOutputPort_t *pwmGetMotors(void)
-{
-    return motors;
-}
-
-static void pwmDisableMotors(void)
-{
-    motorPwmDevice.enabled = false;
-}
-
-static bool pwmEnableMotors(void)
-{
-    motorPwmDevice.enabled = true;
-
-    return true;
-}
-
-static void pwmWriteMotor(uint8_t index, float value)
-{
-    if (index < pwmRawPkt.motorCount) {
-        pwmRawPkt.pwm_output_raw[index] = value;
-    }
-}
-
-static void pwmWriteMotorInt(uint8_t index, uint16_t value)
-{
-    pwmWriteMotor(index, (float)value);
-}
-
-static void pwmShutdownPulsesForAllMotors(void)
-{
-    motorPwmDevice.enabled = false;
-}
-
-bool pwmIsMotorEnabled(uint8_t index)
-{
-    return motors[index].enabled;
-}
-
-static void pwmCompleteMotorUpdate(void)
-{
-    // send to simulator
-    // for gazebo8 ArduCopterPlugin remap, normal range = [0.0, 1.0], 3D rang = [-1.0, 1.0]
-
-    double outScale = 1000.0;
-
-    if (pthread_mutex_trylock(&updateLock) != 0) return;
-    udpSend(&pwmRawLink, &pwmRawPkt, sizeof(servo_packet_raw));
-    // static int c = 0;
-    // if (c++%50 == 1)
-    //     printf("[SITL][pwm]%u:%07.1f,%07.1f,%07.1f,%07.1f\n", idlePulse, pwmRawPkt.pwm_output_raw[0],
-    //         pwmRawPkt.pwm_output_raw[1], pwmRawPkt.pwm_output_raw[2], pwmRawPkt.pwm_output_raw[3]);
 }
 
 void pwmWriteServo(uint8_t index, float value)
@@ -548,30 +484,89 @@ void pwmWriteServo(uint8_t index, float value)
     }
 }
 
-static uint16_t SITLConvertToInternal(float motorValue)
-{
-    uint16_t internalValue;
-    if (motorValue > 0)
-        internalValue = scaleRangef(motorValue, 0, 1, motorConfig()->minthrottle, motorConfig()->maxthrottle);
-    else
-        internalValue = motorConfig()->mincommand;
 
-    return internalValue;
+pwmOutputPort_t motors[MAX_SUPPORTED_MOTORS];
+
+static motorDevice_t motorPwmDevice;
+
+pwmOutputPort_t *pwmGetMotors(void)
+{
+    return motors;
 }
 
-static motorDevice_t motorPwmDevice =
+static void SITLDisableMotors(void)
+{
+    motorPwmDevice.enabled = false;
+}
+
+static bool SITLEnableMotors(void)
+{
+    motorPwmDevice.enabled = true;
+
+    return true;
+}
+
+static void SITLWriteMotor(uint8_t index, uint8_t mode, float throttle)
+{
+    UNUSED(mode);
+
+    if (index < pwmRawPkt.motorCount) {
+        float pulse;
+
+        if (throttle > 0)
+            pulse = scaleRangef(throttle, 0, 1, motorConfig()->minthrottle, motorConfig()->maxthrottle);
+        else
+            pulse = motorConfig()->mincommand;
+
+        pwmRawPkt.pwm_output_raw[index] = pulse;
+    }
+}
+
+static void SITLWriteMotorInt(uint8_t index, uint16_t value)
+{
+    if (index < pwmRawPkt.motorCount) {
+        pwmRawPkt.pwm_output_raw[index] = value;
+    }
+}
+
+static void SITLShutdownPulsesForAllMotors(void)
+{
+    motorPwmDevice.enabled = false;
+}
+
+bool SITLIsMotorEnabled(uint8_t index)
+{
+    return motors[index].enabled;
+}
+
+static void SITLCompleteMotorUpdate(void)
+{
+    // send to simulator
+    // for gazebo8 ArduCopterPlugin remap, normal range = [0.0, 1.0], 3D rang = [-1.0, 1.0]
+
+    if (pthread_mutex_trylock(&updateLock) != 0) 
+        return;
+
+    udpSend(&pwmRawLink, &pwmRawPkt, sizeof(servo_packet_raw));
+
+    // static int c = 0;
+    // if (c++%50 == 1)
+    //     printf("[SITL][pwm]%u:%07.1f,%07.1f,%07.1f,%07.1f\n", idlePulse, pwmRawPkt.pwm_output_raw[0],
+    //         pwmRawPkt.pwm_output_raw[1], pwmRawPkt.pwm_output_raw[2], pwmRawPkt.pwm_output_raw[3]);
+}
+
+static motorDevice_t motorDevice =
 {
     .vTable = {
         .postInit = motorPostInitNull,
-        .enable = pwmEnableMotors,
-        .disable = pwmDisableMotors,
-        .isMotorEnabled = pwmIsMotorEnabled,
+        .enable = SITLEnableMotors,
+        .disable = SITLDisableMotors,
+        .isMotorEnabled = SITLIsMotorEnabled,
         .updateStart = motorUpdateStartNull,
-        .write = pwmWriteMotor,
-        .writeInt = pwmWriteMotorInt,
-        .updateComplete = pwmCompleteMotorUpdate,
-        .shutdown = pwmShutdownPulsesForAllMotors,
-        .convertMotorToInternal = SITLConvertToInternal
+        .write = SITLWriteMotor,
+        .writeInt = SITLWriteMotorInt,
+        .updateComplete = SITLCompleteMotorUpdate,
+        .shutdown = SITLShutdownPulsesForAllMotors,
     }
 };
 
@@ -586,12 +581,14 @@ motorDevice_t *motorPwmDevInit(const motorDevConfig_t *motorConfig, uint8_t moto
     for (int motorIndex = 0; motorIndex < MAX_SUPPORTED_MOTORS && motorIndex < motorCount; motorIndex++) {
         motors[motorIndex].enabled = true;
     }
-    motorPwmDevice.count = motorCount; // Never used, but seemingly a right thing to set it anyways.
-    motorPwmDevice.initialized = true;
-    motorPwmDevice.enabled = false;
 
-    return &motorPwmDevice;
+    motorDevice.count = motorCount;
+    motorDevice.initialized = true;
+    motorDevice.enabled = false;
+
+    return &motorDevice;
 }
+
 
 // ADC part
 uint16_t adcGetChannel(uint8_t channel)
