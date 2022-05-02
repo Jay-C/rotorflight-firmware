@@ -121,6 +121,9 @@ typedef struct
     uint8_t   tail_rotor_mode;  // Tail motor vs. variable pitch tail
     int16_t   tail_motor_idle;  // Idle throttle for tail motor
 
+    uint16_t  tail_motor_low_level;   // Low throttle level
+    uint16_t  tail_motor_low_accel;   // Low throttle accel limit
+
     uint8_t   swash_ring;       // Swash ring size
 
 } mixerConfig_t;

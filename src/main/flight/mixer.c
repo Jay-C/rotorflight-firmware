@@ -56,6 +56,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .main_rotor_dir = DIR_CW,
     .tail_rotor_mode = TAIL_MODE_VARIABLE,
     .tail_motor_idle = 0,
+    .tail_motor_low_level = 10,
+    .tail_motor_low_accel = 1000,
     .swash_ring = 0,
 );
 
@@ -85,7 +87,9 @@ static FAST_RAM_ZERO_INIT float     cyclicTotal;
 static FAST_RAM_ZERO_INIT float     cyclicLimit;
 
 static FAST_RAM_ZERO_INIT float     tailMotorIdle;
-static FAST_RAM_ZERO_INIT int8_t    tailMotorDirection;
+static FAST_RAM_ZERO_INIT float     tailMotorOutput;
+static FAST_RAM_ZERO_INIT float     tailMotorLowLevel;
+static FAST_RAM_ZERO_INIT float     tailMotorLowAccel;
 
 
 static inline void mixerSetInput(int index, float value)
@@ -140,6 +144,17 @@ static void mixerCyclicLimit(void)
                         sq(mixInput[MIXER_IN_STABILIZED_PITCH]));
 }
 
+static inline float limitTailThrottle(float throttle)
+{
+    if (throttle > 0 && throttle < tailMotorLowLevel)
+        return tailMotorOutput + fminf(throttle - tailMotorOutput, tailMotorLowAccel);
+
+    if (throttle < 0 && throttle > -tailMotorLowLevel)
+        return tailMotorOutput + fmaxf(throttle - tailMotorOutput, -tailMotorLowAccel);
+
+    return throttle;
+}
+
 static void mixerUpdateMotorizedTail(void)
 {
     // Motorized tail control
@@ -173,16 +188,20 @@ static void mixerUpdateMotorizedTail(void)
         // Apply minimum throttle
         if (isSpooledUp()) {
             if (throttle > -tailMotorIdle && throttle < tailMotorIdle)
-                throttle = tailMotorDirection * tailMotorIdle;
+                throttle = (tailMotorOutput < 0) ? -tailMotorIdle : tailMotorIdle;
+            else
+                throttle = limitTailThrottle(throttle);
         } else {
             if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.01f)
                 throttle = 0;
             else if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.25f)
-                throttle *= mixInput[MIXER_IN_STABILIZED_THROTTLE] / 0.25f;
+                throttle = limitTailThrottle(throttle * mixInput[MIXER_IN_STABILIZED_THROTTLE] / 0.25f);
+            else
+                throttle = limitTailThrottle(throttle);
         }
 
-        // Direction sign
-        tailMotorDirection = (throttle < 0) ? -1 : 1;
+        // Save current value
+        tailMotorOutput = throttle;
 
         // Yaw is now tail motor throttle
         mixInput[MIXER_IN_STABILIZED_YAW] = throttle;
@@ -301,6 +320,8 @@ void mixerInit(void)
     }
 
     tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
+    tailMotorLowLevel = mixerConfig()->tail_motor_low_level / 100.0f;
+    tailMotorLowAccel = mixerConfig()->tail_motor_low_accel * pidGetDT();
 
     if (mixerConfig()->swash_ring)
         cyclicLimit = 1.41f - mixerConfig()->swash_ring * 0.0041f;
