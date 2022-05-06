@@ -155,7 +155,7 @@ DEBUG_FLAGS            = -ggdb3
 endif
 OPTIMISATION_BASE     := -flto -fuse-linker-plugin -ffast-math -fmerge-all-constants
 OPTIMISE_DEFAULT      := -O2
-OPTIMISE_SPEED        := -Ofast
+OPTIMISE_SPEED        := -O2
 OPTIMISE_SIZE         := -Os
 
 LTO_FLAGS             := $(OPTIMISATION_BASE) $(OPTIMISE_SPEED)
