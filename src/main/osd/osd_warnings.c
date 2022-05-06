@@ -131,13 +131,6 @@ void renderOsdWarning(char *warningText, bool *blinking, uint8_t *displayAttr)
         return;
     }
 
-    // Warn when in flip over after crash mode
-    if (osdWarnGetState(OSD_WARNING_CRASH_FLIP) && isFlipOverAfterCrashActive()) {
-        tfp_sprintf(warningText, "CRASH FLIP");
-        *displayAttr = DISPLAYPORT_ATTR_INFO;
-        return;
-    }
-
     // RSSI
     if (osdWarnGetState(OSD_WARNING_RSSI) && (getRssiPercent() < osdConfig()->rssi_alarm)) {
         tfp_sprintf(warningText, "RSSI LOW");
