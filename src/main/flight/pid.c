@@ -172,7 +172,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .feedforward_jitter_factor = 7,
         .feedforward_boost = 15,
         .dterm_lpf1_dyn_expo = 5,
-        .level_race_mode = false,
         .vbat_sag_compensation = 0,
     );
 }
@@ -588,11 +587,7 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     const bool gpsRescueIsActive = FLIGHT_MODE(GPS_RESCUE_MODE);
     levelMode_e levelMode;
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || gpsRescueIsActive) {
-        if (pidRuntime.levelRaceMode && !gpsRescueIsActive) {
-            levelMode = LEVEL_MODE_R;
-        } else {
-            levelMode = LEVEL_MODE_RP;
-        }
+        levelMode = LEVEL_MODE_RP;
     } else {
         levelMode = LEVEL_MODE_OFF;
     }
