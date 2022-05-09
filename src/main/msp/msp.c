@@ -1875,11 +1875,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #else
         sbufWriteU8(dst, 0);
 #endif
-#if defined(USE_THRUST_LINEARIZATION)
-        sbufWriteU8(dst, currentPidProfile->thrustLinearization);
-#else
         sbufWriteU8(dst, 0);
-#endif
         break;
     case MSP_SENSOR_CONFIG:
 #if defined(USE_ACC)
@@ -2748,11 +2744,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #else
             sbufReadU8(src);
 #endif
-#if defined(USE_THRUST_LINEARIZATION)
-            currentPidProfile->thrustLinearization = sbufReadU8(src);
-#else
             sbufReadU8(src);
-#endif
         }
         pidInitConfig(currentPidProfile);
         initEscEndpoints();
