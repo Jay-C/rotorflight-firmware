@@ -125,7 +125,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .dterm_notch_hz = 0,
         .dterm_notch_cutoff = 0,
         .itermWindupPointPercent = 85,
-        .pidAtMinThrottle = PID_STABILISATION_ON,
         .levelAngleLimit = 55,
         .feedforward_transition = 0,
         .yawRateAccelLimit = 0,
@@ -187,11 +186,6 @@ void pgResetFn_pidProfiles(pidProfile_t *pidProfiles)
 #define D_LPF_RAW_SCALE 25
 #define D_LPF_FILT_SCALE 22
 
-
-void pidStabilisationState(pidStabilisationState_e pidControllerState)
-{
-    pidRuntime.pidStabilisationEnabled = (pidControllerState == PID_STABILISATION_ON) ? true : false;
-}
 
 const angle_index_t rcAliasToAngleIndexMap[] = { AI_ROLL, AI_PITCH };
 
@@ -787,7 +781,7 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
     // Disable PID control if at zero throttle or if gyro overflow detected
     // This may look very innefficient, but it is done on purpose to always show real CPU usage as in flight
-    if (!pidRuntime.pidStabilisationEnabled || gyroOverflowDetected()) {
+    if (gyroOverflowDetected()) {
         for (int axis = FD_ROLL; axis <= FD_YAW; ++axis) {
             pidData[axis].P = 0;
             pidData[axis].I = 0;

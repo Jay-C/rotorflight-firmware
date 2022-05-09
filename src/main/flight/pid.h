@@ -75,11 +75,6 @@ typedef enum {
     SUPEREXPO_YAW_ALWAYS
 } pidSuperExpoYaw_e;
 
-typedef enum {
-    PID_STABILISATION_OFF = 0,
-    PID_STABILISATION_ON
-} pidStabilisationState_e;
-
 typedef struct pidf_s {
     uint8_t P;
     uint8_t I;
@@ -123,7 +118,6 @@ typedef struct pidProfile_s {
     uint8_t itermWindupPointPercent;        // iterm windup threshold, percent motor saturation
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
-    uint8_t pidAtMinThrottle;               // Disable/Enable pids on zero throttle.
     uint8_t levelAngleLimit;                // Max angle in degrees in level mode
 
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
@@ -214,7 +208,6 @@ typedef struct pidCoefficient_s {
 typedef struct pidRuntime_s {
     float dT;
     float pidFrequency;
-    bool pidStabilisationEnabled;
     float previousPidSetpoint[XYZ_AXIS_COUNT];
     filterApplyFnPtr dtermNotchApplyFn;
     biquadFilter_t dtermNotch[XYZ_AXIS_COUNT];
@@ -304,7 +297,6 @@ extern pt1Filter_t throttleLpf;
 void resetPidProfile(pidProfile_t *profile);
 
 void pidResetIterm(void);
-void pidStabilisationState(pidStabilisationState_e pidControllerState);
 void pidAcroTrainerInit(void);
 void pidSetAcroTrainerState(bool newState);
 
