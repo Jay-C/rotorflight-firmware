@@ -161,7 +161,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .feedforward_jitter_factor = 7,
         .feedforward_boost = 15,
         .dterm_lpf1_dyn_expo = 5,
-        .vbat_sag_compensation = 0,
     );
 }
 
