@@ -118,7 +118,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .pidSumLimitYaw = PIDSUM_LIMIT_YAW,
         .dterm_notch_hz = 0,
         .dterm_notch_cutoff = 0,
-        .itermWindupPointPercent = 85,
         .levelAngleLimit = 55,
         .feedforward_transition = 0,
         .yawRateAccelLimit = 0,
@@ -554,9 +553,6 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
     // gradually scale back integration when above windup point
     float dynCi = pidRuntime.dT;
-    if (pidRuntime.itermWindupPointInv > 1.0f) {
-        dynCi *= constrainf((1.0f - getMotorMixRange()) * pidRuntime.itermWindupPointInv, 0.0f, 1.0f);
-    }
 
     // Precalculate gyro deta for D-term here, this allows loop unrolling
     float gyroRateDterm[XYZ_AXIS_COUNT];
