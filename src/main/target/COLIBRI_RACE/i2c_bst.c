@@ -155,7 +155,6 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXHORIZON, "HORIZON;", 2 },
     //{ BOXVARIO, "VARIO;", 4 },
     { BOXMAG, "MAG;", 5 },
-    { BOXHEADFREE, "HEADFREE;", 6 },
     { BOXHEADADJ, "HEADADJ;", 7 },
     { BOXCAMSTAB, "CAMSTAB;", 8 },
     { BOXPASSTHRU, "PASSTHRU;", 12 },
@@ -292,8 +291,6 @@ static bool bstSlaveProcessFeedbackCommand(uint8_t bstRequest)
             tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
                     IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)) << BOXHORIZON |
                     IS_ENABLED(FLIGHT_MODE(MAG_MODE)) << BOXMAG |
-                    IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)) << BOXHEADFREE |
-                    IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)) << BOXHEADADJ |
                     IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)) << BOXCAMSTAB |
                     IS_ENABLED(FLIGHT_MODE(PASSTHRU_MODE)) << BOXPASSTHRU |
                     IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)) << BOXBEEPERON |
