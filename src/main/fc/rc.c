@@ -41,7 +41,7 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/feedforward.h"
+#include "flight/pid.h"
 #include "flight/gps_rescue.h"
 #include "flight/pid_init.h"
 
@@ -57,11 +57,6 @@
 
 typedef float (applyRatesFn)(const int axis, float rcCommandf, const float rcCommandfAbs);
 
-#ifdef USE_FEEDFORWARD
-static float oldRcCommand[XYZ_AXIS_COUNT];
-static bool isDuplicate[XYZ_AXIS_COUNT];
-float rcCommandDelta[XYZ_AXIS_COUNT];
-#endif
 static float rawSetpoint[XYZ_AXIS_COUNT];
 static float setpointRate[3], rcDeflection[3], rcDeflectionAbs[3];
 static bool reverseMotors = false;
@@ -130,23 +125,6 @@ float getRcDeflectionAbs(int axis)
 {
     return rcDeflectionAbs[axis];
 }
-
-#ifdef USE_FEEDFORWARD
-float getRawSetpoint(int axis)
-{
-    return rawSetpoint[axis];
-}
-
-float getRcCommandDelta(int axis)
-{
-    return rcCommandDelta[axis];
-}
-
-bool getRxRateValid(void)
-{
-    return isRxRateValid;
-}
-#endif
 
 #define SETPOINT_RATE_LIMIT 1998
 STATIC_ASSERT(CONTROL_RATE_CONFIG_RATE_LIMIT_MAX <= SETPOINT_RATE_LIMIT, CONTROL_RATE_CONFIG_RATE_LIMIT_MAX_too_large);
@@ -517,13 +495,6 @@ FAST_CODE void processRcCommand(void)
 
     if (isRxDataNew) {
         for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-
-#ifdef USE_FEEDFORWARD
-            isDuplicate[axis] = (oldRcCommand[axis] == rcCommand[axis]);
-            rcCommandDelta[axis] = (rcCommand[axis] - oldRcCommand[axis]);
-            oldRcCommand[axis] = rcCommand[axis];
-#endif
-
             float angleRate;
             
 #ifdef USE_GPS_RESCUE
