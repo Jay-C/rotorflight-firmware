@@ -1018,13 +1018,6 @@ const clivalue_t valueTable[] = {
     { "horizon_tilt_effect",        VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0,  250 }, PG_PID_PROFILE, offsetof(pidProfile_t, horizon_tilt_effect) },
     { "horizon_tilt_expert_mode",   VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, horizon_tilt_expert_mode) },
 
-#if defined(USE_ABSOLUTE_CONTROL)
-    { PARAM_NAME_ABS_CONTROL_GAIN,  VAR_UINT8 | PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 20 }, PG_PID_PROFILE, offsetof(pidProfile_t, abs_control_gain) },
-    { "abs_control_limit",          VAR_UINT8 | PROFILE_VALUE,  .config.minmaxUnsigned = { 10, 255 }, PG_PID_PROFILE, offsetof(pidProfile_t, abs_control_limit) },
-    { "abs_control_error_limit",    VAR_UINT8 | PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 45 }, PG_PID_PROFILE, offsetof(pidProfile_t, abs_control_error_limit) },
-    { "abs_control_cutoff",         VAR_UINT8 | PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 45 }, PG_PID_PROFILE, offsetof(pidProfile_t, abs_control_cutoff) },
-#endif
-
 #ifdef USE_DYN_IDLE
     { PARAM_NAME_DYN_IDLE_MIN_RPM,           VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, dyn_idle_min_rpm) },
     { PARAM_NAME_DYN_IDLE_P_GAIN,            VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, dyn_idle_p_gain) },
