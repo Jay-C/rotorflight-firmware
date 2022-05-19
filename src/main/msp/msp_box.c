@@ -199,19 +199,14 @@ void initActiveBoxIds(void)
 #ifdef USE_GPS
     if (featureIsEnabled(FEATURE_GPS)) {
 #ifdef USE_GPS_RESCUE
-        if (!isFixedWing()) {
-            BME(BOXGPSRESCUE);
-        }
+        BME(BOXGPSRESCUE);
 #endif
         BME(BOXBEEPGPSCOUNT);
     }
 #endif
 
     BME(BOXFAILSAFE);
-
-    if (mixerConfig()->mixerMode == MIXER_FLYING_WING || mixerConfig()->mixerMode == MIXER_AIRPLANE || mixerConfig()->mixerMode == MIXER_CUSTOM_AIRPLANE) {
-        BME(BOXPASSTHRU);
-    }
+    BME(BOXPASSTHRU);
 
     BME(BOXBEEPERON);
     BME(BOXBEEPERMUTE);
@@ -244,11 +239,9 @@ void initActiveBoxIds(void)
 #endif
 
 #ifdef USE_SERVOS
-    if (mixerConfig()->mixerMode == MIXER_CUSTOM_AIRPLANE) {
-        BME(BOXSERVO1);
-        BME(BOXSERVO2);
-        BME(BOXSERVO3);
-    }
+    BME(BOXSERVO1);
+    BME(BOXSERVO2);
+    BME(BOXSERVO3);
 #endif
 
 #ifdef USE_RCDEVICE

@@ -293,7 +293,6 @@ void serialSetMode(serialPort_t *, portMode_e) {}
 void serialPassthrough(serialPort_t *, serialPort_t *, serialConsumer *, serialConsumer *) {}
 uint32_t millis(void) { return 0; }
 uint8_t getBatteryCellCount(void) { return 1; }
-void servoMixerLoadMix(int) {}
 const char * getBatteryStateString(void){ return "_getBatteryStateString_"; }
 
 uint32_t stackTotalSize(void) { return 0x4000; }
