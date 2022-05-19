@@ -35,7 +35,6 @@
 #include "fc/controlrate_profile.h"
 #include "fc/runtime_config.h"
 
-#include "flight/mixer_tricopter.h"
 #include "flight/pid.h"
 
 #include "rx/rx.h"
@@ -271,13 +270,6 @@ bool areMotorsRunning(void)
     return motorsRunning;
 }
 
-#ifdef USE_SERVOS
-bool mixerIsTricopter(void)
-{
-    return (currentMixerMode == MIXER_TRI || currentMixerMode == MIXER_CUSTOM_TRI);
-}
-#endif
-
 // All PWM motor scaling is done to standard PWM range of 1000-2000 for easier tick conversion with legacy code / configurator
 // DSHOT scaling is done to the actual dshot range
 void initEscEndpoints(void)
@@ -368,11 +360,6 @@ void mixerInit(mixerMode_e mixerMode)
     currentMixerMode = mixerMode;
 
     initEscEndpoints();
-#ifdef USE_SERVOS
-    if (mixerIsTricopter()) {
-        mixerTricopterInit();
-    }
-#endif
 
 #ifdef USE_DYN_IDLE
     mixerRuntime.dynIdleI = 0.0f;
