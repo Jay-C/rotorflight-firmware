@@ -79,10 +79,6 @@
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define RX_CHANNELS_TAER
 
-#undef USE_SERVOS
-#define USE_QUAD_MIXER_ONLY
-
-
 // IO - assuming all IOs on 48pin package
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
