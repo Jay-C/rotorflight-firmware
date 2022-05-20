@@ -51,8 +51,6 @@
 #define USE_ACC
 #define USE_ACC_MPU6050
 
-#define DEFAULT_MIXER           MIXER_QUADX_1234
-
 #undef USE_LED_STRIP
 #else
 #define USE_GYRO
