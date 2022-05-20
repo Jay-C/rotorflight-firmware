@@ -116,10 +116,6 @@
 #undef USE_SERIAL_PASSTHROUGH
 #undef USE_CLI
 
-// Since the CJMCU PCB has holes for 4 motors in each corner we can save same flash space by disabling support for other mixers.
-#define USE_QUAD_MIXER_ONLY
-#undef USE_SERVOS
-
 // Number of available PWM outputs
 //#define MAX_PWM_OUTPUT_PORTS    4
 
