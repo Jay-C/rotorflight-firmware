@@ -105,6 +105,7 @@ typedef enum {
     DEBUG_GYRO_SAMPLE,
     DEBUG_RX_TIMING,
     DEBUG_YAW_PRECOMP,
+    DEBUG_AGC,
     DEBUG_COUNT
 } debugType_e;
 

@@ -47,6 +47,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
+#include "flight/agc.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
@@ -137,6 +138,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .gov_tta_limit = 0,
         .gov_cyclic_ff_weight = 40,
         .gov_collective_ff_weight = 100,
+        .agc_rate = 10000,
+        .agc_freq = 50,
+        .agc_q = 15,
     );
 }
 
@@ -357,6 +361,9 @@ void pidInitProfile(const pidProfile_t *pidProfile)
 
     // PID filters
     pidInitFilters(pidProfile);
+
+    // Automatic Gain Control
+    agcInit(pidProfile);
 }
 
 void pidInit(const pidProfile_t *pidProfile)
@@ -704,6 +711,9 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 
     // Calculate PID sum
     pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
+
+    // Automatic Gain Control
+    agcUpdate(axis, pidData[axis].Sum, gyroRate);
 }
 
 

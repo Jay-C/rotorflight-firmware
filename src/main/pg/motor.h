@@ -68,6 +68,8 @@ typedef struct motorConfig_s {
     uint16_t mainRotorGearRatio[2];         // Main motor to main rotor gear ratio [N,D]
     uint16_t tailRotorGearRatio[2];         // Main rotor to tail rotor gear ratio [N,D]
 
+    uint16_t agc_gain[3];
+
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
