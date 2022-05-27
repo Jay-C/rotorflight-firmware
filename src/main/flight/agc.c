@@ -45,12 +45,32 @@ static FAST_RAM_ZERO_INIT float updateRate;
 
 static FAST_RAM_ZERO_INIT float gain[3];
 
+static FAST_RAM_ZERO_INIT uint16_t dindex;
+static FAST_RAM_ZERO_INIT uint16_t dtotal;
+
 static FAST_RAM_ZERO_INIT biquadFilter_t ctrlFilter[3];
 static FAST_RAM_ZERO_INIT biquadFilter_t gyroFilter[3];
+
+static float dline[3][512];
+
+
+
+static float agcDelayUpdate(uint8_t axis, float ctrl)
+{
+    uint16_t index = (dindex + 1) % dtotal;
+
+    dline[axis][dindex] = ctrl;
+
+    dindex = index;
+
+    return dline[axis][dindex];
+}
 
 
 void agcUpdate(uint8_t axis, float ctrl, float gyro)
 {
+    ctrl = agcDelayUpdate(axis, ctrl);
+
     float ctrlRate = biquadFilterApply(&ctrlFilter[axis], ctrl);
     float gyroRate = biquadFilterApply(&gyroFilter[axis], gyro);
 
@@ -70,7 +90,6 @@ void agcUpdate(uint8_t axis, float ctrl, float gyro)
 
             if (axis == FD_PITCH) {
                 DEBUG_SET(DEBUG_AGC, 2, ratio * 1000);
-                DEBUG_SET(DEBUG_AGC, 3, gain[axis] * 1000);
             }
         }
     }
@@ -80,15 +99,24 @@ void agcInit(const pidProfile_t *pidProfile)
 {
     UNUSED(pidProfile);
 
+    dindex = 0;
+    dtotal = 200;
+
     updateRate = 0.1f / constrainf(pidProfile->agc_rate, 1, 50000);
 
     float cutoff = pidProfile->agc_freq / 10.0f;
     float Q = pidProfile->agc_q / 10.0f;
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        
         gain[axis] = 1.0f;
+
         biquadFilterInit(&ctrlFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
         biquadFilterInit(&gyroFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
+
+        for (int i = 0; i<512; i++) {
+            dline[axis][i] = 0;
+        }
     }
 }
 
