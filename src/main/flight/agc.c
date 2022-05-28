@@ -41,6 +41,11 @@
 #include "flight/agc.h"
 
 
+#define AGC_DELAY_LINE   (1<<10)
+#define AGC_DELAY_MASK   (AGC_DELAY_LINE-1)
+
+static float dline[3][AGC_DELAY_LINE];
+
 static FAST_RAM_ZERO_INIT float updateRate;
 
 static FAST_RAM_ZERO_INIT float gain[3];
@@ -51,28 +56,25 @@ static FAST_RAM_ZERO_INIT uint16_t dtotal;
 static FAST_RAM_ZERO_INIT biquadFilter_t ctrlFilter[3];
 static FAST_RAM_ZERO_INIT biquadFilter_t gyroFilter[3];
 
-static float dline[3][512];
 
 
 
 static float agcDelayUpdate(uint8_t axis, float ctrl)
 {
-    uint16_t index = (dindex + 1) % dtotal;
-
     dline[axis][dindex] = ctrl;
 
-    dindex = index;
+    dindex = (dindex + 1) & AGC_DELAY_MASK;
 
-    return dline[axis][dindex];
+    return dline[axis][(dindex - dtotal) & AGC_DELAY_MASK];
 }
 
 
 void agcUpdate(uint8_t axis, float ctrl, float gyro)
 {
-    ctrl = agcDelayUpdate(axis, ctrl);
-
     float ctrlRate = biquadFilterApply(&ctrlFilter[axis], ctrl);
     float gyroRate = biquadFilterApply(&gyroFilter[axis], gyro);
+
+    ctrlRate = agcDelayUpdate(axis, ctrlRate);
 
     if (axis == FD_PITCH) {
         DEBUG_SET(DEBUG_AGC, 0, ctrlRate * 10);
@@ -81,12 +83,12 @@ void agcUpdate(uint8_t axis, float ctrl, float gyro)
         DEBUG_SET(DEBUG_AGC, 3, gain[axis] * 1000);
     }
 
-    if (fabsf(ctrlRate) > 0.1f) {
+    if (fabsf(ctrlRate) > 45 && fabs(gyroRate) > 45) {
         float ratio = gyroRate / ctrlRate;
-        float R = fabsf(ctrlRate / 100);
+        float R = fabsf(ctrlRate / 360);
 
-        if (ratio > 0.1f) {
-            gain[axis] += (ratio - gain[axis]) * updateRate * R;
+        if (ratio > 0.2f && ratio < 5.0f) {
+            gain[axis] += (ratio - gain[axis]) * updateRate * R * R;
 
             if (axis == FD_PITCH) {
                 DEBUG_SET(DEBUG_AGC, 2, ratio * 1000);
@@ -111,12 +113,17 @@ void agcInit(const pidProfile_t *pidProfile)
         
         gain[axis] = 1.0f;
 
-        biquadFilterInit(&ctrlFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
-        biquadFilterInit(&gyroFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
+        //biquadFilterInit(&ctrlFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
+        //biquadFilterInit(&gyroFilter[axis], cutoff, gyro.targetLooptime, Q, FILTER_NOTCH);
+
+        biquadFilterInitLPF(&ctrlFilter[axis], cutoff, gyro.targetLooptime);
+        biquadFilterInitLPF(&gyroFilter[axis], cutoff, gyro.targetLooptime);
 
         for (int i = 0; i<512; i++) {
             dline[axis][i] = 0;
         }
     }
+
+    UNUSED(Q);
 }
 
