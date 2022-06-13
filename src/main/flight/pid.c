@@ -84,9 +84,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
     RESET_CONFIG(pidProfile_t, pidProfile,
         .profileName = { 0, },
         .pid = {
-            [PID_ROLL] =  { 10, 50,  0, 50 },
-            [PID_PITCH] = { 10, 50,  0, 50 },
-            [PID_YAW] =   { 50, 50,  0,  0 },
+            [PID_ROLL] =  { 10, 50,  0, 50, 0 },
+            [PID_PITCH] = { 10, 50,  0, 50, 0 },
+            [PID_YAW] =   { 50, 50,  0,  0, 0 },
         },
         .debug_axis = FD_ROLL,
         .angle_level_strength = 50,
@@ -113,7 +113,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .ff_spike_limit = 60,
         .ff_max_rate_limit = 100,
         .ff_smooth_factor = 37,
-        .ff_boost = 15,
+        .ff_boost = 0,
         .yaw_center_offset = 0,
         .yaw_cw_stop_gain = 100,
         .yaw_ccw_stop_gain = 100,
@@ -205,6 +205,8 @@ static FAST_RAM_ZERO_INIT float itermDecay;
 static FAST_RAM_ZERO_INIT bool itermRotation;
 #endif
 
+static FAST_RAM_ZERO_INIT float setpointPrev[XYZ_AXIS_COUNT];
+
 
 float pidGetDT()
 {
@@ -287,18 +289,21 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pidCoefficient[FD_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[FD_ROLL].I;
     pidCoefficient[FD_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[FD_ROLL].D;
     pidCoefficient[FD_ROLL].Kf = ROLL_F_TERM_SCALE * pidProfile->pid[FD_ROLL].F;
+    pidCoefficient[FD_ROLL].Kg = ROLL_G_TERM_SCALE * pidProfile->pid[FD_ROLL].G;
 
     // Pitch axis
     pidCoefficient[FD_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[FD_PITCH].P;
     pidCoefficient[FD_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[FD_PITCH].I;
     pidCoefficient[FD_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[FD_PITCH].D;
     pidCoefficient[FD_PITCH].Kf = PITCH_F_TERM_SCALE * pidProfile->pid[FD_PITCH].F;
+    pidCoefficient[FD_PITCH].Kg = PITCH_G_TERM_SCALE * pidProfile->pid[FD_PITCH].G;
 
     // Yaw axis
     pidCoefficient[FD_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[FD_YAW].P;
     pidCoefficient[FD_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[FD_YAW].I;
     pidCoefficient[FD_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[FD_YAW].D;
     pidCoefficient[FD_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[FD_YAW].F;
+    pidCoefficient[FD_YAW].Kg = YAW_G_TERM_SCALE * pidProfile->pid[FD_YAW].G;
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         itermLimit[i] = constrain(pidProfile->iterm_limit[i], 0, 1000);
@@ -626,6 +631,11 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 #endif
 #endif
 
+    // Setpoint derivative
+    float pidSetpointDelta = (pidSetpoint - setpointPrev[axis]) * pidFrequency;
+    setpointPrev[axis] = pidSetpoint;
+    pidSetpointDelta = rcSmoothingApplyDerivativeFilter(axis, pidSetpointDelta);
+
     // Get gyro rate
     float gyroRate = gyro.gyroADCf[axis];
 
@@ -701,9 +711,17 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 
     // Calculate feedforward component
     pidData[axis].F = pidCoefficient[axis].Kf * pidSetpoint;
+    pidData[axis].G = pidCoefficient[axis].Kg * pidSetpointDelta;
+
+    if (pidAxisDebug(axis)) {
+        DEBUG_SET(DEBUG_UNUSED_42, 0, pidData[axis].P);
+        DEBUG_SET(DEBUG_UNUSED_42, 1, pidData[axis].D);
+        DEBUG_SET(DEBUG_UNUSED_42, 2, pidData[axis].F);
+        DEBUG_SET(DEBUG_UNUSED_42, 3, pidData[axis].G);
+    }
 
     // Calculate PID sum
-    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
+    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F + pidData[axis].G;
 }
 
 

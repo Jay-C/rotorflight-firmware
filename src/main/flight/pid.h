@@ -48,16 +48,19 @@
 #define ROLL_I_TERM_SCALE           0.05000000f
 #define ROLL_D_TERM_SCALE           0.00005000f
 #define ROLL_F_TERM_SCALE           0.01250000f
+#define ROLL_G_TERM_SCALE           0.00025000f
 
 #define PITCH_P_TERM_SCALE          0.00333333f
 #define PITCH_I_TERM_SCALE          0.05000000f
 #define PITCH_D_TERM_SCALE          0.00005000f
 #define PITCH_F_TERM_SCALE          0.01250000f
+#define PITCH_G_TERM_SCALE          0.00025000f
 
 #define YAW_P_TERM_SCALE            0.03333333f
 #define YAW_I_TERM_SCALE            0.25000000f
 #define YAW_D_TERM_SCALE            0.00050000f
 #define YAW_F_TERM_SCALE            0.01250000f
+#define YAW_G_TERM_SCALE            0.00025000f
 
 #define ITERM_RELAX_SETPOINT_THRESHOLD    40.0f
 
@@ -100,6 +103,7 @@ typedef struct pidf_s {
     uint16_t I;
     uint16_t D;
     uint16_t F;
+    uint16_t G;
 } pidf_t;
 
 typedef struct pidCoefficient_s {
@@ -107,6 +111,7 @@ typedef struct pidCoefficient_s {
     float Ki;
     float Kd;
     float Kf;
+    float Kg;
 } pidCoefficient_t;
 
 typedef struct pidAxisData_s {
@@ -119,6 +124,7 @@ typedef struct pidAxisData_s {
     float I;
     float D;
     float F;
+    float G;
     float Sum;
 } pidAxisData_t;
 
