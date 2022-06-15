@@ -1212,7 +1212,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
             sbufWriteU16(dst, currentPidProfile->pid[i].P);
             sbufWriteU16(dst, currentPidProfile->pid[i].I);
-            sbufWriteU16(dst, currentPidProfile->pid[i].D);
+            sbufWriteU16(dst, currentPidProfile->pid[i].G);
             sbufWriteU16(dst, currentPidProfile->pid[i].F);
         }
         break;
@@ -2102,7 +2102,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
             currentPidProfile->pid[i].P = sbufReadU16(src);
             currentPidProfile->pid[i].I = sbufReadU16(src);
-            currentPidProfile->pid[i].D = sbufReadU16(src);
+            currentPidProfile->pid[i].G = sbufReadU16(src);
             currentPidProfile->pid[i].F = sbufReadU16(src);
         }
         pidInitProfile(currentPidProfile);
