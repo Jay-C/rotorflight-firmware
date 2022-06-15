@@ -130,6 +130,9 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(LED_PROFILE,        NONE,  1,  3),
     ADJ_CONFIG(PID_PROFILE,        NONE,  1,  6),
     ADJ_CONFIG(RATE_PROFILE,       NONE,  1,  6),
+
+    ADJ_CONFIG(PITCH_COLLECTIVE_FF,    PID, 0, 10000),
+    ADJ_CONFIG(PITCH_COLL_IMPULSE_FF,  PID, 0, 10000),
 };
 
 
@@ -274,6 +277,12 @@ static int getAdjustmentValue(uint8_t adjFunc)
         value = getLedProfile() + 1;
 #endif
         break;
+    case ADJUSTMENT_PITCH_COLLECTIVE_FF:
+        value = currentPidProfile->pitch_collective_ff_gain;
+        break;
+    case ADJUSTMENT_PITCH_COLL_IMPULSE_FF:
+        value = currentPidProfile->pitch_collective_ff_impulse_gain;
+        break;
     }
 
     return value;
@@ -417,6 +426,12 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
 #ifdef USE_LED_STRIP
         setLedProfile(value - 1);
 #endif
+        break;
+    case ADJUSTMENT_PITCH_COLLECTIVE_FF:
+        currentPidProfile->pitch_collective_ff_gain = value;
+        break;
+    case ADJUSTMENT_PITCH_COLL_IMPULSE_FF:
+        currentPidProfile->pitch_collective_ff_impulse_gain = value;
         break;
     }
 }
