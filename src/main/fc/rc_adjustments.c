@@ -41,6 +41,7 @@
 #include "fc/rc.h"
 
 #include "flight/pid.h"
+#include "flight/mixer.h"
 #include "flight/governor.h"
 
 #include "io/beeper.h"
@@ -133,6 +134,8 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 
     ADJ_CONFIG(PITCH_COLLECTIVE_FF,    PID, 0, 10000),
     ADJ_CONFIG(PITCH_COLL_IMPULSE_FF,  PID, 0, 10000),
+
+    ADJ_CONFIG(SWASH_PHASE,        MIXER, -450, 450),
 };
 
 
@@ -282,6 +285,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         break;
     case ADJUSTMENT_PITCH_COLL_IMPULSE_FF:
         value = currentPidProfile->pitch_collective_ff_impulse_gain;
+        break;
+    case ADJUSTMENT_SWASH_PHASE:
+        value = mixerConfig()->swash_phase;
         break;
     }
 
@@ -433,6 +439,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_PITCH_COLL_IMPULSE_FF:
         currentPidProfile->pitch_collective_ff_impulse_gain = value;
         break;
+    case ADJUSTMENT_SWASH_PHASE:
+        mixerConfigMutable()->swash_phase = value;
+        break;
     }
 }
 
@@ -550,6 +559,9 @@ void processRcAdjustments(void)
     }
     if (changed & ADJUSTMENT_TYPE_GOV) {
         governorInitProfile(currentPidProfile);
+    }
+    if (changed & ADJUSTMENT_TYPE_MIXER) {
+        mixerInitSwash();
     }
 
 #if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
