@@ -714,10 +714,19 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
     pidData[axis].G = pidCoefficient[axis].Kg * pidSetpointDelta;
 
     if (pidAxisDebug(axis)) {
-        DEBUG_SET(DEBUG_UNUSED_42, 0, pidData[axis].P);
-        DEBUG_SET(DEBUG_UNUSED_42, 1, pidData[axis].D);
-        DEBUG_SET(DEBUG_UNUSED_42, 2, pidData[axis].F);
-        DEBUG_SET(DEBUG_UNUSED_42, 3, pidData[axis].G);
+        DEBUG_SET(DEBUG_UNUSED_42, 0, pidData[axis].F);
+        DEBUG_SET(DEBUG_UNUSED_42, 1, pidData[axis].G);
+        DEBUG_SET(DEBUG_UNUSED_42, 2, pidData[axis].P);
+        DEBUG_SET(DEBUG_UNUSED_42, 3, pidData[axis].I);
+
+        DEBUG32_SET(DEBUG_UNUSED_42, 0, pidData[axis].Setpoint * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 1, pidData[axis].GyroRate * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 2, pidData[axis].P * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 3, pidData[axis].I * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 4, pidData[axis].D * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 5, pidData[axis].F * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 6, pidData[axis].G * 10);
+        DEBUG32_SET(DEBUG_UNUSED_42, 7, pidData[axis].Sum * 10);
     }
 
     // Calculate PID sum
