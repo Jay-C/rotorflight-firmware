@@ -253,9 +253,9 @@ static void dynLpfFilterInit()
     } else {
         gyro.dynLpfFilter = DYN_LPF_NONE;
     }
+    gyro.dynLpfHz  = gyroConfig()->gyro_lpf1_static_hz;
     gyro.dynLpfMin = gyroConfig()->gyro_lpf1_dyn_min_hz;
     gyro.dynLpfMax = gyroConfig()->gyro_lpf1_dyn_max_hz;
-    gyro.dynLpfCurveExpo = gyroConfig()->gyro_lpf1_dyn_expo;
 
     if (gyroConfig()->dterm_lpf1_dyn_min_hz > 0) {
         switch (gyroConfig()->dterm_lpf1_type) {
@@ -278,9 +278,9 @@ static void dynLpfFilterInit()
     } else {
         gyro.dynLpfDtermFilter = DYN_LPF_NONE;
     }
+    gyro.dynLpfDtermHz  = gyroConfig()->dterm_lpf1_static_hz;
     gyro.dynLpfDtermMin = gyroConfig()->dterm_lpf1_dyn_min_hz;
     gyro.dynLpfDtermMax = gyroConfig()->dterm_lpf1_dyn_max_hz;
-    gyro.dynLpfDtermCurveExpo = gyroConfig()->dterm_lpf1_dyn_expo;
 }
 #endif
 

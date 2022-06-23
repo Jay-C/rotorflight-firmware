@@ -128,13 +128,13 @@ typedef struct gyro_s {
 
 #ifdef USE_DYN_LPF
     uint8_t dynLpfFilter;
+    uint16_t dynLpfHz;
     uint16_t dynLpfMin;
     uint16_t dynLpfMax;
-    uint8_t dynLpfCurveExpo;
     uint8_t  dynLpfDtermFilter;
+    uint16_t dynLpfDtermHz;
     uint16_t dynLpfDtermMin;
     uint16_t dynLpfDtermMax;
-    uint8_t dynLpfDtermCurveExpo;
 #endif
 
 #ifdef USE_GYRO_OVERFLOW_CHECK
@@ -199,15 +199,15 @@ typedef struct gyroConfig_s {
     uint8_t gyro_filter_debug_axis;
 
     uint8_t gyrosDetected; // What gyros should detection be attempted for on startup. Automatically set on first startup.
-    uint8_t gyro_lpf1_dyn_expo; // set the curve for dynamic gyro lowpass filter
 
     uint8_t dterm_lpf1_type;                // Filter type for dterm lowpass 1
     uint16_t dterm_lpf1_static_hz;          // Static Dterm lowpass 1 filter cutoff value in hz
     uint16_t dterm_lpf1_dyn_min_hz;         // Dterm lowpass filter 1 min hz when in dynamic mode
     uint16_t dterm_lpf1_dyn_max_hz;         // Dterm lowpass filter 1 max hz when in dynamic mode
-    uint8_t dterm_lpf1_dyn_expo;            // set the curve for dynamic dterm lowpass filter
+
     uint8_t dterm_lpf2_type;                // Filter type for 2nd dterm lowpass
     uint16_t dterm_lpf2_static_hz;          // Static Dterm lowpass 2 filter cutoff value in hz
+
     uint16_t dterm_notch_hz;                // Biquad dterm notch hz
     uint16_t dterm_notch_cutoff;            // Biquad dterm notch low cutoff
 
@@ -226,6 +226,6 @@ int16_t gyroGetTemperature(void);
 bool gyroOverflowDetected(void);
 uint16_t gyroAbsRateDps(int axis);
 #ifdef USE_DYN_LPF
-void dynLpfGyroUpdate(float throttle);
-void dynLpfDTermUpdate(float throttle);
+void dynLpfGyroUpdate(float ratio);
+void dynLpfDTermUpdate(float ratio);
 #endif
