@@ -157,6 +157,8 @@ typedef struct pidProfile_s
     uint8_t   iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t   iterm_relax_cutoff[XYZ_AXIS_COUNT]; // Low pass filter which predicts average response to setpoint
 
+    uint16_t  setpoint_boost[XYZ_AXIS_COUNT]; // Amount of SP boost
+
     uint8_t   acro_trainer_gain;              // The strength of the limiting. Raising may reduce overshoot but also lead to oscillation around the angle limit
     uint8_t   acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees
     uint16_t  acro_trainer_lookahead_ms;      // The lookahead window in milliseconds used to reduce overshoot

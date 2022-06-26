@@ -207,6 +207,9 @@ static FAST_RAM_ZERO_INIT float itermDecay;
 static FAST_RAM_ZERO_INIT bool itermRotation;
 #endif
 
+static FAST_RAM_ZERO_INIT float setpointPrev[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT float setpointBoost[XYZ_AXIS_COUNT];
+
 
 float pidGetDT()
 {
@@ -301,6 +304,9 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pidCoefficient[FD_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[FD_YAW].I;
     pidCoefficient[FD_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[FD_YAW].D;
     pidCoefficient[FD_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[FD_YAW].F;
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++)
+        setpointBoost[i] = pidProfile->setpoint_boost[i] / 1000.0f;
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         itermLimit[i] = constrain(pidProfile->iterm_limit[i], 0, 1000);
@@ -654,6 +660,11 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 #endif
 #endif
 
+    // Setpoint derivative
+    float pidSetpointDelta = (pidSetpoint - setpointPrev[axis]) * pidFrequency;
+    setpointPrev[axis] = pidSetpoint;
+    float pidSetpointDeltaSmooth = rcSmoothingApplyDerivativeFilter(axis, pidSetpointDelta);
+
     // Get gyro rate
     float gyroRate = gyro.gyroADCf[axis];
 
@@ -728,7 +739,15 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
     pidData[axis].D = Ks * pidCoefficient[axis].Kd * dtermDelta;
 
     // Calculate feedforward component
-    pidData[axis].F = pidCoefficient[axis].Kf * pidSetpoint;
+    float feedforward = pidSetpoint + pidSetpointDeltaSmooth * setpointBoost[axis];
+    pidData[axis].F = pidCoefficient[axis].Kf * feedforward;
+
+    if (pidAxisDebug(axis)) {
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 0, pidSetpoint);
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 1, pidSetpointDelta);
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 2, pidSetpointDeltaSmooth);
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 3, feedforward);
+    }
 
     // Calculate PID sum
     pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
