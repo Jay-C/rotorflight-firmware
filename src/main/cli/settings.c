@@ -1032,6 +1032,10 @@ const clivalue_t valueTable[] = {
     { "pitch_collective_ff_gain",         VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_gain) },
     { "pitch_collective_ff_impulse_gain", VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_impulse_gain) },
 
+    { "pitch_bounce_filter_level",        VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_bounce_filter_level) },
+    { "pitch_bounce_filter_window",       VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_bounce_filter_window) },
+    { "pitch_bounce_filter_expo",         VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 10, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_bounce_filter_expo) },
+
     { "gov_headspeed",              VAR_UINT16 |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50000 }, PG_PID_PROFILE, offsetof(pidProfile_t, gov_headspeed) },
     { "gov_gain",                   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, gov_gain) },
     { "gov_p_gain",                 VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, gov_p_gain) },

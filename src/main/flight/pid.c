@@ -123,6 +123,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .yaw_collective_ff_impulse_freq = 100,
         .pitch_collective_ff_gain = 20,
         .pitch_collective_ff_impulse_gain = 0,
+        .pitch_bounce_filter_level = 50,
+        .pitch_bounce_filter_window = 50,
+        .pitch_bounce_filter_expo = 150,
         .cyclic_normalization = NORM_ABSOLUTE,
         .collective_normalization = NORM_NATURAL,
         .normalization_min_ratio = 50,
@@ -181,6 +184,12 @@ static FAST_RAM_ZERO_INIT float collectiveCommand;
 static FAST_RAM_ZERO_INIT float pitchCollectiveFFGain;
 static FAST_RAM_ZERO_INIT float pitchCollectiveImpulseFFGain;
 
+static FAST_RAM_ZERO_INIT float pitchBounceFilterExpo;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterGain;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterState;
+static FAST_RAM_ZERO_INIT float pitchBounceWindowSize;
+static FAST_RAM_ZERO_INIT timeUs_t pitchBounceWindowTime;
+static FAST_RAM_ZERO_INIT timeDelta_t pitchBounceTimeLimit;
 
 #ifdef USE_ITERM_RELAX
 static FAST_RAM_ZERO_INIT uint8_t itermRelax;
@@ -362,6 +371,19 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch parameters
     pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain;
     pitchCollectiveImpulseFFGain = pidProfile->pitch_collective_ff_impulse_gain;
+
+    // Pitch bounce filter
+    if (pidProfile->pitch_bounce_filter_level) {
+        pitchBounceFilterGain = pt1FilterGain(750.0f / constrainf(pidProfile->pitch_bounce_filter_level, 1, 1000), dT);
+        pitchBounceFilterExpo = pidProfile->pitch_bounce_filter_expo / 100.0f;
+        pitchBounceWindowSize = pidProfile->pitch_bounce_filter_window;
+        pitchBounceTimeLimit  = 1000 * pidProfile->pitch_bounce_filter_level;
+    }
+    else {
+        pitchBounceFilterGain = 0;
+        pitchBounceWindowSize = 0;
+        pitchBounceTimeLimit  = 0;
+    }
 
     // Governor profile
     governorInitProfile(pidProfile);
@@ -642,7 +664,7 @@ static FAST_CODE void pidApplyCollective(void)
         collectiveCommand = rcCommand[COLLECTIVE] * MIXER_RC_SCALING;
 }
 
-static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
+static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis, timeUs_t currentTimeUs)
 {
     // Rate setpoint
     float pidSetpoint = getSetpointRate(axis);
@@ -740,6 +762,32 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 
     // Calculate feedforward component
     float feedforward = pidSetpoint + pidSetpointDeltaSmooth * setpointBoost[axis];
+
+    // Pitch bounce filter
+    if (axis == FD_PITCH && pitchBounceTimeLimit) {
+        const float setpointRatio = fabsf(pidSetpoint / pitchBounceWindowSize);
+        if (setpointRatio < 1.0f) {
+            if (cmpTimeUs(currentTimeUs, pitchBounceWindowTime) < pitchBounceTimeLimit) {
+                // Smooth transition at the window boundary
+                float gain = pitchBounceFilterGain + 0.95f * powf(setpointRatio, pitchBounceFilterExpo);
+                pitchBounceFilterState += (pidSetpoint - pitchBounceFilterState) * gain;
+            }
+            else {
+                pitchBounceFilterState = pidSetpoint;
+            }
+            feedforward = pitchBounceFilterState;
+        }
+        else {
+            pitchBounceWindowTime = currentTimeUs;
+            pitchBounceFilterState = pidSetpoint;
+        }
+
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 0, pidSetpoint);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 1, pitchBounceFilterState);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 2, setpointRatio * 1000);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 3, feedforward);
+    }
+
     pidData[axis].F = pidCoefficient[axis].Kf * feedforward;
 
     if (pidAxisDebug(axis)) {
@@ -756,8 +804,6 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 
 FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     // Rotate error around yaw axis
 #ifdef USE_ITERM_ROTATION
     rotateIterm();
@@ -770,9 +816,9 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     pidRescueUpdate();
 
     // Apply PID for each axis
-    pidApplyAxis(pidProfile, FD_ROLL);
-    pidApplyAxis(pidProfile, FD_PITCH);
-    pidApplyAxis(pidProfile, FD_YAW);
+    pidApplyAxis(pidProfile, FD_ROLL, currentTimeUs);
+    pidApplyAxis(pidProfile, FD_PITCH, currentTimeUs);
+    pidApplyAxis(pidProfile, FD_YAW, currentTimeUs);
 
     // Calculate cyclic/collective precompensation
     pidApplyPrecomp();

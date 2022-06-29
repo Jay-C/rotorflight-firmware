@@ -186,6 +186,10 @@ typedef struct pidProfile_s
     uint16_t  pitch_collective_ff_gain;       // Collective to pitch feedforward gain
     uint16_t  pitch_collective_ff_impulse_gain; // Collective to pitch feedforward impulse gain
 
+    uint16_t  pitch_bounce_filter_level;      // Pitch/Elevator bounce filter level (catchup time in ms)
+    uint8_t   pitch_bounce_filter_window;     // Pitch/Elevator bounce filter setpoint window
+    uint8_t   pitch_bounce_filter_expo;       // Pitch/Elevator bounce filter window exponent
+
     uint8_t   cyclic_normalization;           // Type of pitch/roll rate normalization
     uint8_t   collective_normalization;       // Type of collective normalization
     uint8_t   normalization_min_ratio;        // Minimum headspeed ratio for normalization
