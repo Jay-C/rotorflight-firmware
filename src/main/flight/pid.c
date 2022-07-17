@@ -124,8 +124,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .pitch_collective_ff_gain = 20,
         .pitch_collective_ff_impulse_gain = 0,
         .pitch_bounce_filter_level = 50,
-        .pitch_bounce_filter_window = 50,
-        .pitch_bounce_filter_expo = 150,
+        .pitch_bounce_filter_delay = 50,
         .cyclic_normalization = NORM_ABSOLUTE,
         .collective_normalization = NORM_NATURAL,
         .normalization_min_ratio = 50,
@@ -184,12 +183,10 @@ static FAST_RAM_ZERO_INIT float collectiveCommand;
 static FAST_RAM_ZERO_INIT float pitchCollectiveFFGain;
 static FAST_RAM_ZERO_INIT float pitchCollectiveImpulseFFGain;
 
-static FAST_RAM_ZERO_INIT float pitchBounceFilterExpo;
-static FAST_RAM_ZERO_INIT float pitchBounceFilterGain;
-static FAST_RAM_ZERO_INIT float pitchBounceFilterState;
-static FAST_RAM_ZERO_INIT float pitchBounceWindowSize;
-static FAST_RAM_ZERO_INIT timeUs_t pitchBounceWindowTime;
-static FAST_RAM_ZERO_INIT timeDelta_t pitchBounceTimeLimit;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterFo;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterFd;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterWn;
+static FAST_RAM_ZERO_INIT float pitchBounceFilterPT3[3];
 
 #ifdef USE_ITERM_RELAX
 static FAST_RAM_ZERO_INIT uint8_t itermRelax;
@@ -373,16 +370,13 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pitchCollectiveImpulseFFGain = pidProfile->pitch_collective_ff_impulse_gain;
 
     // Pitch bounce filter
-    if (pidProfile->pitch_bounce_filter_level) {
-        pitchBounceFilterGain = pt1FilterGain(750.0f / constrainf(pidProfile->pitch_bounce_filter_level, 1, 1000), dT);
-        pitchBounceFilterExpo = pidProfile->pitch_bounce_filter_expo / 100.0f;
-        pitchBounceWindowSize = pidProfile->pitch_bounce_filter_window;
-        pitchBounceTimeLimit  = 1000 * pidProfile->pitch_bounce_filter_level;
+    if (pidProfile->pitch_bounce_filter_level && pidProfile->pitch_bounce_filter_delay) {
+        pitchBounceFilterFo = 100;
+        pitchBounceFilterFd = pitchBounceFilterFo - 100.0f / constrainf(pidProfile->pitch_bounce_filter_delay, 1, 250);
+        pitchBounceFilterWn = pidProfile->pitch_bounce_filter_level * 4;
     }
     else {
-        pitchBounceFilterGain = 0;
-        pitchBounceWindowSize = 0;
-        pitchBounceTimeLimit  = 0;
+        pitchBounceFilterWn = 0;
     }
 
     // Governor profile
@@ -666,6 +660,8 @@ static FAST_CODE void pidApplyCollective(void)
 
 static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis, timeUs_t currentTimeUs)
 {
+    UNUSED(currentTimeUs);
+
     // Rate setpoint
     float pidSetpoint = getSetpointRate(axis);
 
@@ -764,28 +760,22 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
     float feedforward = pidSetpoint + pidSetpointDeltaSmooth * setpointBoost[axis];
 
     // Pitch bounce filter
-    if (axis == FD_PITCH && pitchBounceTimeLimit) {
-        const float setpointRatio = fabsf(pidSetpoint / pitchBounceWindowSize);
-        if (setpointRatio < 1.0f) {
-            if (cmpTimeUs(currentTimeUs, pitchBounceWindowTime) < pitchBounceTimeLimit) {
-                // Smooth transition at the window boundary
-                float gain = pitchBounceFilterGain + 0.95f * powf(setpointRatio, pitchBounceFilterExpo);
-                pitchBounceFilterState += (pidSetpoint - pitchBounceFilterState) * gain;
-            }
-            else {
-                pitchBounceFilterState = pidSetpoint;
-            }
-            feedforward = pitchBounceFilterState;
-        }
-        else {
-            pitchBounceWindowTime = currentTimeUs;
-            pitchBounceFilterState = pidSetpoint;
-        }
+    if (axis == FD_PITCH && pitchBounceFilterWn) {
+        const float spRatio = fabsf(pidSetpoint / pitchBounceFilterWn);
+        const float Fo = pitchBounceFilterFo - pitchBounceFilterFd / (spRatio + 1);
+        const float Fp = 12.324211482f * Fo;
+        const float gain = Fp / (pidFrequency + Fp);
+
+        pitchBounceFilterPT3[0] += (feedforward             - pitchBounceFilterPT3[0]) * gain;
+        pitchBounceFilterPT3[1] += (pitchBounceFilterPT3[0] - pitchBounceFilterPT3[1]) * gain;
+        pitchBounceFilterPT3[2] += (pitchBounceFilterPT3[1] - pitchBounceFilterPT3[2]) * gain;
+
+        feedforward = pitchBounceFilterPT3[2];
 
         DEBUG_SET(DEBUG_PITCH_BOUNCE, 0, pidSetpoint);
-        DEBUG_SET(DEBUG_PITCH_BOUNCE, 1, pitchBounceFilterState);
-        DEBUG_SET(DEBUG_PITCH_BOUNCE, 2, setpointRatio * 1000);
-        DEBUG_SET(DEBUG_PITCH_BOUNCE, 3, feedforward);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 1, feedforward);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 2, Fo);
+        DEBUG_SET(DEBUG_PITCH_BOUNCE, 3, gain * 1000);
     }
 
     pidData[axis].F = pidCoefficient[axis].Kf * feedforward;
