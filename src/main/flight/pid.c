@@ -214,7 +214,7 @@ static FAST_RAM_ZERO_INIT bool itermRotation;
 #endif
 
 static FAST_RAM_ZERO_INIT float setpointPrev[XYZ_AXIS_COUNT];
-static FAST_RAM_ZERO_INIT float setpointBoost[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT float dynamicFF[XYZ_AXIS_COUNT];
 
 
 float pidGetDT()
@@ -311,8 +311,9 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pidCoefficient[FD_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[FD_YAW].D;
     pidCoefficient[FD_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[FD_YAW].F;
 
-    for (int i = 0; i < XYZ_AXIS_COUNT; i++)
-        setpointBoost[i] = pidProfile->setpoint_boost[i] / 1000.0f;
+    dynamicFF[FD_ROLL]  = ROLL_F_TERM_SCALE  * pidProfile->dynamic_feedforward[FD_ROLL];
+    dynamicFF[FD_PITCH] = PITCH_F_TERM_SCALE * pidProfile->dynamic_feedforward[FD_PITCH];
+    dynamicFF[FD_YAW]   = YAW_F_TERM_SCALE   * pidProfile->dynamic_feedforward[FD_YAW];
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         itermLimit[i] = constrain(pidProfile->iterm_limit[i], 0, 1000);
@@ -757,7 +758,7 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
     pidData[axis].D = Ks * pidCoefficient[axis].Kd * dtermDelta;
 
     // Calculate feedforward component
-    float feedforward = pidSetpoint + pidSetpointDeltaSmooth * setpointBoost[axis];
+    float feedforward = pidCoefficient[axis].Kf * pidSetpoint + dynamicFF[axis] * pidSetpointDeltaSmooth;
 
     // Pitch bounce filter
     if (axis == FD_PITCH && pitchBounceFilterWn) {
@@ -778,7 +779,7 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
         DEBUG_SET(DEBUG_PITCH_BOUNCE, 3, gain * 1000);
     }
 
-    pidData[axis].F = pidCoefficient[axis].Kf * feedforward;
+    pidData[axis].F = feedforward;
 
     if (pidAxisDebug(axis)) {
         DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 0, pidSetpoint);

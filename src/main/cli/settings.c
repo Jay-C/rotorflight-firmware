@@ -985,9 +985,9 @@ const clivalue_t valueTable[] = {
     { "d_yaw",                      VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, pid[PID_YAW].D) },
     { "f_yaw",                      VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, pid[PID_YAW].F) },
 
-    { "pitch_boost",                VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, setpoint_boost[PID_PITCH]) },
-    { "roll_boost",                 VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, setpoint_boost[PID_ROLL]) },
-    { "yaw_boost",                  VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, setpoint_boost[PID_YAW]) },
+    { "dyn_ff_pitch",               VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, dynamic_feedforward[PID_PITCH]) },
+    { "dyn_ff_roll",                VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, dynamic_feedforward[PID_ROLL]) },
+    { "dyn_ff_yaw",                 VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, dynamic_feedforward[PID_YAW]) },
 
     { "pitch_error_filter",         VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, error_filter_hz[PID_PITCH]) },
     { "roll_error_filter",          VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, error_filter_hz[PID_ROLL]) },
