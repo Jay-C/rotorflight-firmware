@@ -157,7 +157,8 @@ typedef struct pidProfile_s
     uint8_t   iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t   iterm_relax_cutoff[XYZ_AXIS_COUNT]; // Low pass filter which predicts average response to setpoint
 
-    uint16_t  dynamic_feedforward[XYZ_AXIS_COUNT]; // Delta feedforward
+    uint16_t  dynamic_ff_gain[XYZ_AXIS_COUNT];    // Dynamic feedforward
+    uint8_t   dynamic_ff_cutoff[XYZ_AXIS_COUNT];  // Dyn FF Cutoff freq
 
     uint8_t   acro_trainer_gain;              // The strength of the limiting. Raising may reduce overshoot but also lead to oscillation around the angle limit
     uint8_t   acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees

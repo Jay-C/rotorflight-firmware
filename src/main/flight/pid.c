@@ -213,8 +213,8 @@ static FAST_RAM_ZERO_INIT float itermDecay;
 static FAST_RAM_ZERO_INIT bool itermRotation;
 #endif
 
-static FAST_RAM_ZERO_INIT float setpointPrev[XYZ_AXIS_COUNT];
-static FAST_RAM_ZERO_INIT float dynamicFF[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT pt1Filter_t dynFilter[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT float dynFFGain[XYZ_AXIS_COUNT];
 
 
 float pidGetDT()
@@ -269,6 +269,9 @@ void pidInitFilters(const pidProfile_t *pidProfile)
         if (pidProfile->error_filter_hz[i]) {
             pt1FilterInit(&errorFilter[i], pt1FilterGain(pidProfile->error_filter_hz[i], dT));
         }
+        if (pidProfile->dynamic_ff_gain[i]) {
+            pt1FilterInit(&dynFilter[i], pt1FilterGain(MAX(pidProfile->dynamic_ff_cutoff[i],1), dT));
+        }
     }
 
 #ifdef USE_ITERM_RELAX
@@ -311,9 +314,10 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pidCoefficient[FD_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[FD_YAW].D;
     pidCoefficient[FD_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[FD_YAW].F;
 
-    dynamicFF[FD_ROLL]  = ROLL_F_TERM_SCALE  * pidProfile->dynamic_feedforward[FD_ROLL];
-    dynamicFF[FD_PITCH] = PITCH_F_TERM_SCALE * pidProfile->dynamic_feedforward[FD_PITCH];
-    dynamicFF[FD_YAW]   = YAW_F_TERM_SCALE   * pidProfile->dynamic_feedforward[FD_YAW];
+    // Dynamic feedforward
+    dynFFGain[FD_ROLL]  = ROLL_F_TERM_SCALE  * pidProfile->dynamic_ff_gain[FD_ROLL];
+    dynFFGain[FD_PITCH] = PITCH_F_TERM_SCALE * pidProfile->dynamic_ff_gain[FD_PITCH];
+    dynFFGain[FD_YAW]   = YAW_F_TERM_SCALE   * pidProfile->dynamic_ff_gain[FD_YAW];
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         itermLimit[i] = constrain(pidProfile->iterm_limit[i], 0, 1000);
@@ -679,11 +683,6 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
 #endif
 #endif
 
-    // Setpoint derivative
-    float pidSetpointDelta = (pidSetpoint - setpointPrev[axis]) * pidFrequency;
-    setpointPrev[axis] = pidSetpoint;
-    float pidSetpointDeltaSmooth = rcSmoothingApplyDerivativeFilter(axis, pidSetpointDelta);
-
     // Get gyro rate
     float gyroRate = gyro.gyroADCf[axis];
 
@@ -757,8 +756,11 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
     pidData[axis].Derror = dtermErrorRate;
     pidData[axis].D = Ks * pidCoefficient[axis].Kd * dtermDelta;
 
+    // Dynamic feedforward
+    float pidSetpointDynamic = pidSetpoint - pt1FilterApply(&dynFilter[axis], pidSetpoint);
+
     // Calculate feedforward component
-    float feedforward = pidCoefficient[axis].Kf * pidSetpoint + dynamicFF[axis] * pidSetpointDeltaSmooth;
+    float feedforward = pidCoefficient[axis].Kf * pidSetpoint + dynFFGain[axis] * pidSetpointDynamic;
 
     // Pitch bounce filter
     if (axis == FD_PITCH && pitchBounceFilterWn) {
@@ -783,8 +785,8 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis,
 
     if (pidAxisDebug(axis)) {
         DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 0, pidSetpoint);
-        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 1, pidSetpointDelta);
-        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 2, pidSetpointDeltaSmooth);
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 1, dynFilter[axis].state);
+        DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 2, pidSetpointDynamic);
         DEBUG_SET(DEBUG_RC_SMOOTHING_DELTA, 3, feedforward);
     }
 
