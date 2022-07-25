@@ -388,6 +388,9 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+        if (batteryConfig()->batteryCapacity != 1234) {
+            return;
+        }
 
         const timeUs_t currentTimeUs = micros();
 
