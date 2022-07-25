@@ -956,6 +956,7 @@ const clivalue_t valueTable[] = {
 #endif
 
     { "pid_debug_axis",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_PID_DEBUG_AXIS }, PG_PID_PROFILE, offsetof(pidProfile_t, debug_axis) },
+    { "pid_mode",                   VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 3 }, PG_PID_PROFILE, offsetof(pidProfile_t, pid_mode) },
 
     { "iterm_rotation",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_rotation) },
 #if defined(USE_ITERM_RELAX)
@@ -967,6 +968,8 @@ const clivalue_t valueTable[] = {
 #ifdef USE_ITERM_DECAY
     { "iterm_decay",                VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_decay) },
 #endif
+
+    { "dterm_cutoff",               VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_cutoff) },
 
 #ifdef USE_ACRO_TRAINER
     { "acro_trainer_angle_limit",   VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 10, 80 }, PG_PID_PROFILE, offsetof(pidProfile_t, acro_trainer_angle_limit) },
@@ -1020,8 +1023,8 @@ const clivalue_t valueTable[] = {
 #endif
 
     { "yaw_center_offset",              VAR_INT16  | PROFILE_VALUE, .config.minmax = { -250, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_center_offset) },
-    { "yaw_cw_stop_gain",               VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 50, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cw_stop_gain) },
-    { "yaw_ccw_stop_gain",              VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 50, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ccw_stop_gain) },
+    { "yaw_cw_stop_gain",               VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cw_stop_gain) },
+    { "yaw_ccw_stop_gain",              VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ccw_stop_gain) },
     { "yaw_cyclic_ff_gain",             VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cyclic_ff_gain) },
     { "yaw_collective_ff_gain",         VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_collective_ff_gain) },
     { "yaw_collective_ff_impulse_gain", VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_collective_ff_impulse_gain) },
