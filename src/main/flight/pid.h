@@ -100,6 +100,11 @@ typedef struct pidf_s {
     uint16_t I;
     uint16_t D;
     uint16_t F;
+
+    uint16_t Gain;
+    uint16_t PI_balance;
+    uint16_t PD_balance;
+
 } pidf_t;
 
 typedef struct pidCoefficient_s {
@@ -110,11 +115,6 @@ typedef struct pidCoefficient_s {
 } pidCoefficient_t;
 
 typedef struct pidAxisData_s {
-    float Setpoint;
-    float GyroRate;
-    float Perror;
-    float Ierror;
-    float Derror;
     float P;
     float I;
     float D;
@@ -137,9 +137,13 @@ typedef struct pidProfile_s
 
     pidf_t    pid[PID_ITEM_COUNT];
 
+    uint8_t   pid_mode;                       // PID controller mode
+
     uint8_t   debug_axis;                     // The axis for which debugging values are captured
 
     uint8_t   error_filter_hz[XYZ_AXIS_COUNT];  // Additional filtering on PID error
+
+    uint8_t   dterm_cutoff[XYZ_AXIS_COUNT];
 
     uint8_t   angle_level_strength;
     uint8_t   angle_level_limit;              // Max angle in degrees in level mode
@@ -173,6 +177,7 @@ typedef struct pidProfile_s
     uint8_t   ff_smooth_factor;               // Amount of smoothing for interpolated FF steps
     uint8_t   ff_boost;                       // amount of high-pass filtered FF to add to FF, 100 means 100% added
 
+    uint8_t   yaw_ff_cutoff;                  // Feedforward term cutoff freq
     int16_t   yaw_center_offset;              // Yaw zero offset
     uint8_t   yaw_cw_stop_gain;               // Yaw clockwise stop gain
     uint8_t   yaw_ccw_stop_gain;              // Yaw counter-clockwise stop gain
@@ -230,6 +235,7 @@ uint32_t pidGetLooptime();
 bool pidAxisDebug(int axis);
 
 float getPidSum(int axis);
+float getPidSetpoint(int axis);
 const pidAxisData_t * getPidData(int axis);
 
 float pidGetStabilizedCollective(void);
