@@ -206,6 +206,10 @@ typedef struct pidProfile_s
     uint8_t   gov_cyclic_ff_weight;           // Cyclic feedforward weight
     uint8_t   gov_collective_ff_weight;       // Collective feedforward weight
 
+    uint16_t  agc_rate;                       // AGC update rate
+    uint8_t   agc_freq;                       // AGC notch frequency
+    uint8_t   agc_q;                          // AGC notch Q
+
 } pidProfile_t;
 
 PG_DECLARE_ARRAY(pidProfile_t, PID_PROFILE_COUNT, pidProfiles);

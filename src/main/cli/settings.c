@@ -1046,6 +1046,12 @@ const clivalue_t valueTable[] = {
     { "gov_tta_gain",               VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, gov_tta_gain) },
     { "gov_tta_limit",              VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, gov_tta_limit) },
 
+    { "agc_rate",                   VAR_UINT16 |  PROFILE_VALUE,  .config.minmaxUnsigned = { 10, 50000 }, PG_PID_PROFILE, offsetof(pidProfile_t, agc_rate) },
+    { "agc_freq",                   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, agc_freq) },
+    { "agc_q",                      VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, agc_q) },
+
+    { "agc_gain",                   VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = 3, PG_MOTOR_CONFIG, offsetof(motorConfig_t, agc_gain) },
+
 // PG_TELEMETRY_CONFIG
 #ifdef USE_TELEMETRY
     { "tlm_inverted",               VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_inverted) },
