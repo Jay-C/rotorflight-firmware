@@ -753,8 +753,16 @@ static FAST_CODE void pidApplyAxis(const pidProfile_t *pidProfile, uint8_t axis)
 
     // Calculate I-component
     float itermDelta = itermErrorRate * dT;
-    pidData[axis].Ierror = constrainf(pidData[axis].Ierror + itermDelta, -itermLimit[axis], itermLimit[axis]);
-    pidData[axis].I = pidCoefficient[pidIndex].Ki * pidData[axis].Ierror;
+    if (axis < FD_YAW) {
+        pidData[axis].Ierror = constrainf(pidData[axis].Ierror + itermDelta, -itermLimit[axis], itermLimit[axis]);
+        pidData[axis].I = pidCoefficient[pidIndex].Ki * pidData[axis].Ierror;
+    }
+    else {
+        pidData[axis].Ierror = constrainf(pidData[axis].Ierror + pidCoefficient[pidIndex].Ki * itermDelta,
+                                         -pidCoefficient[pidIndex].Ki * itermLimit[axis],
+                                          pidCoefficient[pidIndex].Ki * itermLimit[axis]);
+        pidData[axis].I = pidData[axis].Ierror;
+    }
 
     // Calculate D-component
     pidData[axis].Derror = dtermErrorRate;
