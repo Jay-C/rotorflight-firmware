@@ -1393,15 +1393,10 @@ static bool blackboxWriteSysinfo(void)
                                                                             currentPidProfile->pid[PID_PITCH].I,
                                                                             currentPidProfile->pid[PID_PITCH].D,
                                                                             currentPidProfile->pid[PID_PITCH].F);
-        BLACKBOX_PRINT_HEADER_LINE("yawCWPID", "%d,%d,%d,%d",               currentPidProfile->pid[PID_YAW_CW].P,
-                                                                            currentPidProfile->pid[PID_YAW_CW].I,
-                                                                            currentPidProfile->pid[PID_YAW_CW].D,
-                                                                            currentPidProfile->pid[PID_YAW_CW].F);
-        BLACKBOX_PRINT_HEADER_LINE("yawCCWPID", "%d,%d,%d,%d" ,             currentPidProfile->pid[PID_YAW_CCW].P,
-                                                                            currentPidProfile->pid[PID_YAW_CCW].I,
-                                                                            currentPidProfile->pid[PID_YAW_CCW].D,
-                                                                            currentPidProfile->pid[PID_YAW_CCW].F);
-
+        BLACKBOX_PRINT_HEADER_LINE("yawPID", "%d,%d,%d,%d",                 currentPidProfile->pid[PID_YAW].P,
+                                                                            currentPidProfile->pid[PID_YAW].I,
+                                                                            currentPidProfile->pid[PID_YAW].D,
+                                                                            currentPidProfile->pid[PID_YAW].F);
         BLACKBOX_PRINT_HEADER_LINE("pid_error_filter", "%d,%d,%d",          currentPidProfile->error_filter_hz[PID_ROLL],
                                                                             currentPidProfile->error_filter_hz[PID_PITCH],
                                                                             currentPidProfile->error_filter_hz[PID_YAW]);
