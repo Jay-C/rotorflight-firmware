@@ -150,7 +150,6 @@ void pgResetFn_pidProfiles(pidProfile_t *pidProfiles)
 }
 
 
-
 static FAST_RAM_ZERO_INIT float dT;
 static FAST_RAM_ZERO_INIT float pidFrequency;
 static FAST_RAM_ZERO_INIT uint32_t pidLooptime;
