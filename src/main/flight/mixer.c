@@ -164,9 +164,10 @@ static void mixerUpdateMotorizedTail(void)
         float throttle = sqrtf(fmaxf(yaw,0));
 
         // Apply minimum throttle
-        if (isSpooledUp()) {
-            throttle = fmaxf(throttle, tailMotorIdle);
-        } else {
+        throttle = fmaxf(throttle, tailMotorIdle);
+
+        // Slow spoolup
+        if (!isSpooledUp()) {
             if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.01f)
                 throttle = 0;
             else if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.25f)
@@ -184,10 +185,11 @@ static void mixerUpdateMotorizedTail(void)
         float throttle = copysignf(sqrtf(fabsf(yaw)),yaw);
 
         // Apply minimum throttle
-        if (isSpooledUp()) {
-            if (throttle > -tailMotorIdle && throttle < tailMotorIdle)
-                throttle = tailMotorDirection * tailMotorIdle;
-        } else {
+        if (throttle > -tailMotorIdle && throttle < tailMotorIdle)
+            throttle = tailMotorDirection * tailMotorIdle;
+
+        // Slow spoolup
+        if (!isSpooledUp()) {
             if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.01f)
                 throttle = 0;
             else if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.25f)
