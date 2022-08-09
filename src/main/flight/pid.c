@@ -304,8 +304,10 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     // Roll axis
     if (pidProfile->pid[PID_ROLL].Gain > 0) {
         pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain;
-        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain * pidProfile->pid[PID_ROLL].PI_balance;
-        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain * pidProfile->pid[PID_ROLL].PI_balance * pidProfile->pid[PID_ROLL].PD_balance;
+        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain *
+                pidProfile->pid[PID_ROLL].PI_balance / 100.0f;
+        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain *
+                pidProfile->pid[PID_ROLL].PI_balance * pidProfile->pid[PID_ROLL].PD_balance / 10000.0f;
     }
     else {
         pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
@@ -317,8 +319,10 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch axis
     if (pidProfile->pid[PID_PITCH].Gain > 0) {
         pidCoefficient[PID_PITCH].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain;
-        pidCoefficient[PID_PITCH].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain * pidProfile->pid[PID_PITCH].PI_balance;
-        pidCoefficient[PID_PITCH].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain * pidProfile->pid[PID_PITCH].PI_balance * pidProfile->pid[PID_PITCH].PD_balance;
+        pidCoefficient[PID_PITCH].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain *
+                pidProfile->pid[PID_PITCH].PI_balance / 100.0f;
+        pidCoefficient[PID_PITCH].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain *
+                pidProfile->pid[PID_PITCH].PI_balance * pidProfile->pid[PID_PITCH].PD_balance / 10000.0f;
     }
     else {
         pidCoefficient[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P;
@@ -330,8 +334,10 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     // Yaw axis
     if (pidProfile->pid[PID_YAW].Gain > 0) {
         pidCoefficient[PID_YAW].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_YAW].Gain;
-        pidCoefficient[PID_YAW].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_YAW].Gain * pidProfile->pid[PID_YAW].PI_balance;
-        pidCoefficient[PID_YAW].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_YAW].Gain * pidProfile->pid[PID_YAW].PI_balance * pidProfile->pid[PID_YAW].PD_balance;
+        pidCoefficient[PID_YAW].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_YAW].Gain *
+                pidProfile->pid[PID_YAW].PI_balance / 100.0f;
+        pidCoefficient[PID_YAW].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_YAW].Gain *
+                pidProfile->pid[PID_YAW].PI_balance * pidProfile->pid[PID_YAW].PD_balance / 10000.0f;
     }
     else {
         pidCoefficient[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P;
