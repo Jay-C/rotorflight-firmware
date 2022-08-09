@@ -100,6 +100,11 @@ typedef struct pidf_s {
     uint16_t I;
     uint16_t D;
     uint16_t F;
+
+    uint16_t Gain;
+    uint16_t PI_balance;
+    uint16_t PD_balance;
+
 } pidf_t;
 
 typedef struct pidCoefficient_s {
