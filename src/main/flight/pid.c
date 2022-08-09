@@ -86,9 +86,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
     RESET_CONFIG(pidProfile_t, pidProfile,
         .profileName = { 0, },
         .pid = {
-            [PID_ROLL]    = { 10, 50,  0, 50 },
-            [PID_PITCH]   = { 10, 50,  0, 50 },
-            [PID_YAW]     = { 40, 50, 10,  0 },
+            [PID_ROLL]    = { 10, 50,  0, 50, 0, 0, 0 },
+            [PID_PITCH]   = { 10, 50,  0, 50, 0, 0, 0 },
+            [PID_YAW]     = { 40, 50, 10,  0, 0, 0, 0 },
         },
         .pid_mode = 1,
         .debug_axis = FD_ROLL,
@@ -299,25 +299,46 @@ void pidInitProfile(const pidProfile_t *pidProfile)
 {
     pidDebugAxis = pidProfile->debug_axis;
 
+    pidMode = constrain(pidProfile->pid_mode, 1, 3);
+
     // Roll axis
-    pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
-    pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I;
-    pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].D;
+    if (pidProfile->pid[PID_ROLL].Gain > 0) {
+        pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain;
+        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain * pidProfile->pid[PID_ROLL].PI_balance;
+        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain * pidProfile->pid[PID_ROLL].PI_balance * pidProfile->pid[PID_ROLL].PD_balance;
+    }
+    else {
+        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
+        pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I;
+        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].D;
+    }
     pidCoefficient[PID_ROLL].Kf = ROLL_F_TERM_SCALE * pidProfile->pid[PID_ROLL].F;
 
     // Pitch axis
-    pidCoefficient[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P;
-    pidCoefficient[PID_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].I;
-    pidCoefficient[PID_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].D;
+    if (pidProfile->pid[PID_PITCH].Gain > 0) {
+        pidCoefficient[PID_PITCH].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain;
+        pidCoefficient[PID_PITCH].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain * pidProfile->pid[PID_PITCH].PI_balance;
+        pidCoefficient[PID_PITCH].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain * pidProfile->pid[PID_PITCH].PI_balance * pidProfile->pid[PID_PITCH].PD_balance;
+    }
+    else {
+        pidCoefficient[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P;
+        pidCoefficient[PID_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].I;
+        pidCoefficient[PID_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].D;
+    }
     pidCoefficient[PID_PITCH].Kf = PITCH_F_TERM_SCALE * pidProfile->pid[PID_PITCH].F;
 
-    // Yaw axis clock-wise
-    pidCoefficient[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P;
-    pidCoefficient[PID_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_YAW].I;
-    pidCoefficient[PID_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].D;
+    // Yaw axis
+    if (pidProfile->pid[PID_YAW].Gain > 0) {
+        pidCoefficient[PID_YAW].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_YAW].Gain;
+        pidCoefficient[PID_YAW].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_YAW].Gain * pidProfile->pid[PID_YAW].PI_balance;
+        pidCoefficient[PID_YAW].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_YAW].Gain * pidProfile->pid[PID_YAW].PI_balance * pidProfile->pid[PID_YAW].PD_balance;
+    }
+    else {
+        pidCoefficient[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P;
+        pidCoefficient[PID_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_YAW].I;
+        pidCoefficient[PID_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].D;
+    }
     pidCoefficient[PID_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[PID_YAW].F;
-
-    pidMode = constrain(pidProfile->pid_mode, 1, 3);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         errorLimit[i] = constrain(pidProfile->iterm_limit[i], 0, 1000);
