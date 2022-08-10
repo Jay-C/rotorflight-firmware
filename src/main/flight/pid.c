@@ -86,13 +86,15 @@ void resetPidProfile(pidProfile_t *pidProfile)
     RESET_CONFIG(pidProfile_t, pidProfile,
         .profileName = { 0, },
         .pid = {
-            [PID_ROLL]    = { 10, 50,  0, 50, 0, 0, 0 },
-            [PID_PITCH]   = { 10, 50,  0, 50, 0, 0, 0 },
-            [PID_YAW]     = { 40, 50, 10,  0, 0, 0, 0 },
+            [PID_ROLL]    = { 10, 50,  0, 50, 100, 100, 100 },
+            [PID_PITCH]   = { 10, 50,  0, 50, 100, 100, 100 },
+            [PID_YAW]     = { 25, 50, 10,  0, 100, 100, 100 },
         },
         .pid_mode = 1,
         .debug_axis = FD_ROLL,
-        .dterm_cutoff = { 20, 20, 20 },
+        .error_cutoff = { 40, 40, 150 },
+        .dterm_cutoff = { 20, 20, 40 },
+        .fterm_cutoff = { 10, 10, 0 },
         .angle_level_strength = 50,
         .angle_level_limit = 55,
         .horizon_level_strength = 50,
@@ -166,16 +168,14 @@ static FAST_RAM_ZERO_INIT pidCoefficient_t pidCoefficient[PID_ITEM_COUNT];
 
 static FAST_RAM_ZERO_INIT pidAxisData_t pidData[XYZ_AXIS_COUNT];
 
-static FAST_RAM_ZERO_INIT pt1Filter_t errorFilter[XYZ_AXIS_COUNT];
-
 static FAST_RAM_ZERO_INIT float pidSetPoint[XYZ_AXIS_COUNT];
 
-static FAST_RAM_ZERO_INIT float Dint[XYZ_AXIS_COUNT];
-static FAST_RAM_ZERO_INIT float Dtau[XYZ_AXIS_COUNT];
-static FAST_RAM_ZERO_INIT float Ierr[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT pt1Filter_t errorFilter[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT pt1Filter_t dtermFilter[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT pt1Filter_t ftermFilter[XYZ_AXIS_COUNT];
 
-static FAST_RAM_ZERO_INIT float Fint;
-static FAST_RAM_ZERO_INIT float Ftau;
+static FAST_RAM_ZERO_INIT float Derr[XYZ_AXIS_COUNT];
+static FAST_RAM_ZERO_INIT float Ierr[XYZ_AXIS_COUNT];
 
 static FAST_RAM_ZERO_INIT float tailCWStopGain;
 static FAST_RAM_ZERO_INIT float tailCCWStopGain;
@@ -276,13 +276,10 @@ float pidGetStabilizedCollective(void)
 void pidInitFilters(const pidProfile_t *pidProfile)
 {
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        if (pidProfile->error_filter_hz[i]) {
-            pt1FilterInit(&errorFilter[i], pt1FilterGain(pidProfile->error_filter_hz[i], dT));
-        }
-        Dtau[i] = pt1FilterGain(constrain(pidProfile->dterm_cutoff[i], 1, 250), dT);
+        pt1FilterInit(&errorFilter[i], pt1FilterGain(constrain(pidProfile->error_cutoff[i], 1, 250), dT));
+        pt1FilterInit(&dtermFilter[i], pt1FilterGain(constrain(pidProfile->dterm_cutoff[i], 1, 250), dT));
+        pt1FilterInit(&ftermFilter[i], pt1FilterGain(constrain(pidProfile->fterm_cutoff[i], 1, 250), dT));
     }
-
-    Ftau = pt1FilterGain(constrain(pidProfile->yaw_ff_cutoff, 1, 250), dT);
 
 #ifdef USE_ITERM_RELAX
     if (itermRelax) {
@@ -309,48 +306,51 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     pidMode = constrain(pidProfile->pid_mode, 1, 3);
 
     // Roll axis
-    if (pidProfile->pid[PID_ROLL].Gain > 0) {
-        pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain;
-        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain *
-                pidProfile->pid[PID_ROLL].PI_balance / 100.0f;
-        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].Gain *
-                pidProfile->pid[PID_ROLL].PI_balance * pidProfile->pid[PID_ROLL].PD_balance / 10000.0f;
-    }
-    else {
-        pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
-        pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I;
-        pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].D;
-    }
+    pidCoefficient[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P *
+        pidProfile->pid[PID_ROLL].PID_gain *
+        pidProfile->pid[PID_ROLL].PI_gain *
+        pidProfile->pid[PID_ROLL].PD_gain / 1000000.0f;
+
+    pidCoefficient[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I *
+        pidProfile->pid[PID_ROLL].PID_gain *
+        pidProfile->pid[PID_ROLL].PI_gain / 10000.0f;
+
+    pidCoefficient[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].D *
+        pidProfile->pid[PID_ROLL].PID_gain *
+        pidProfile->pid[PID_ROLL].PD_gain / 10000.0f;
+
     pidCoefficient[PID_ROLL].Kf = ROLL_F_TERM_SCALE * pidProfile->pid[PID_ROLL].F;
 
     // Pitch axis
-    if (pidProfile->pid[PID_PITCH].Gain > 0) {
-        pidCoefficient[PID_PITCH].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain;
-        pidCoefficient[PID_PITCH].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain *
-                pidProfile->pid[PID_PITCH].PI_balance / 100.0f;
-        pidCoefficient[PID_PITCH].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_PITCH].Gain *
-                pidProfile->pid[PID_PITCH].PI_balance * pidProfile->pid[PID_PITCH].PD_balance / 10000.0f;
-    }
-    else {
-        pidCoefficient[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P;
-        pidCoefficient[PID_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].I;
-        pidCoefficient[PID_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].D;
-    }
+    pidCoefficient[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P *
+        pidProfile->pid[PID_PITCH].PID_gain *
+        pidProfile->pid[PID_PITCH].PI_gain *
+        pidProfile->pid[PID_PITCH].PD_gain / 1000000.0f;
+
+    pidCoefficient[PID_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].I *
+        pidProfile->pid[PID_PITCH].PID_gain *
+        pidProfile->pid[PID_PITCH].PI_gain / 10000.0f;
+
+    pidCoefficient[PID_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].D *
+        pidProfile->pid[PID_PITCH].PID_gain *
+        pidProfile->pid[PID_PITCH].PD_gain / 10000.0f;
+
     pidCoefficient[PID_PITCH].Kf = PITCH_F_TERM_SCALE * pidProfile->pid[PID_PITCH].F;
 
     // Yaw axis
-    if (pidProfile->pid[PID_YAW].Gain > 0) {
-        pidCoefficient[PID_YAW].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_YAW].Gain;
-        pidCoefficient[PID_YAW].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_YAW].Gain *
-                pidProfile->pid[PID_YAW].PI_balance / 100.0f;
-        pidCoefficient[PID_YAW].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_YAW].Gain *
-                pidProfile->pid[PID_YAW].PI_balance * pidProfile->pid[PID_YAW].PD_balance / 10000.0f;
-    }
-    else {
-        pidCoefficient[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P;
-        pidCoefficient[PID_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_YAW].I;
-        pidCoefficient[PID_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].D;
-    }
+    pidCoefficient[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P *
+        pidProfile->pid[PID_YAW].PID_gain *
+        pidProfile->pid[PID_YAW].PI_gain *
+        pidProfile->pid[PID_YAW].PD_gain / 1000000.0f;
+
+    pidCoefficient[PID_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_YAW].I *
+        pidProfile->pid[PID_YAW].PID_gain *
+        pidProfile->pid[PID_YAW].PI_gain / 10000.0f;
+
+    pidCoefficient[PID_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].D *
+        pidProfile->pid[PID_YAW].PID_gain *
+        pidProfile->pid[PID_YAW].PD_gain / 10000.0f;
+
     pidCoefficient[PID_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[PID_YAW].F;
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
@@ -397,8 +397,8 @@ void pidInitProfile(const pidProfile_t *pidProfile)
     collectiveImpulseFilterGain = pt1FilterGain(pidProfile->yaw_collective_ff_impulse_freq / 100.0f, dT);
 
     // Tail/yaw parameters
-    tailCWStopGain = pidProfile->yaw_cw_stop_gain / 50.0f;
-    tailCCWStopGain = pidProfile->yaw_ccw_stop_gain / 50.0f;
+    tailCWStopGain = pidProfile->yaw_cw_stop_gain / 100.0f;
+    tailCCWStopGain = pidProfile->yaw_ccw_stop_gain / 100.0f;
     tailCenterOffset = pidProfile->yaw_center_offset / 1000.0f;
     tailCyclicFFGain = pidProfile->yaw_cyclic_ff_gain;
     tailCollectiveFFGain = pidProfile->yaw_collective_ff_gain;
@@ -693,6 +693,10 @@ static FAST_CODE void pidApplyCollective(void)
  **
  ** MODE 1
  **
+ **   gyro ADC => errorFilter => Kp => P-term
+ **   gyro ADC => dtermFilter => Kd => D-term
+ **   gyro ADC => Relax => Ki => I-term
+ **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
 static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_t axis)
@@ -719,26 +723,27 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
     // Calculate error rate
     float errorRate = setpoint - gyroRate;
 
-    // Limit error bandwidth
-    if (pidProfile->error_filter_hz[axis]) {
-        errorRate = pt1FilterApply(&errorFilter[axis], errorRate);
-    }
-
 
   //// P-term
 
     // Calculate P-component
-    pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
+    if (pidProfile->error_cutoff[axis]) {
+        pidData[axis].P = pidCoefficient[axis].Kp * pt1FilterApply(&errorFilter[axis], errorRate);
+    }
+    else {
+        pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
+    }
 
 
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dtermDeriv = (errorRate - Dint[axis]) * Dtau[axis];
-    Dint[axis] += dtermDeriv;
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
 
     // Calculate D-component
-    pidData[axis].D = pidCoefficient[axis].Kd * dtermDeriv;
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm;
 
 
   //// I-term
@@ -787,36 +792,39 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
 
 static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
 {
+    const uint8_t axis = FD_YAW;
+
     // Rate setpoint
-    float setpoint = getSetpointRate(FD_YAW);
+    float setpoint = getSetpointRate(axis);
 
     // Get filtered gyro rate
-    float gyroRate = gyro.gyroADCf[FD_YAW];
+    float gyroRate = gyro.gyroADCf[axis];
 
     // Calculate I-error rate
     float errorRate = setpoint - gyroRate;
-
-    // Limit error bandwidth
-    if (pidProfile->error_filter_hz[FD_YAW]) {
-        errorRate = pt1FilterApply(&errorFilter[FD_YAW], errorRate);
-    }
 
 
   //// P-term
 
     // Calculate P-component
-    pidData[FD_YAW].P = pidCoefficient[FD_YAW].Kp * errorRate;
+    if (pidProfile->error_cutoff[axis]) {
+        pidData[axis].P = pidCoefficient[axis].Kp * pt1FilterApply(&errorFilter[axis], errorRate);
+    }
+    else {
+        pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
+    }
 
 
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dtermDeriv = (errorRate - Dint[FD_YAW]) * Dtau[FD_YAW];
-    Dint[FD_YAW] += dtermDeriv;
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
 
     // Calculate D-component
-    pidData[FD_YAW].D = pidCoefficient[FD_YAW].Kd * dtermDeriv *
-      ((dtermDeriv > 0) ? tailCWStopGain : tailCCWStopGain);
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm *
+      ((dError > 0) ? tailCWStopGain : tailCCWStopGain);
 
 
   //// I-term
@@ -824,46 +832,42 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
     // Apply I-term relax
 #ifdef USE_ITERM_RELAX
     if (itermRelax) {
-        errorRate = applyItermRelax(FD_YAW, Ierr[FD_YAW], errorRate, gyroRate, setpoint);
+        errorRate = applyItermRelax(axis, Ierr[axis], errorRate, gyroRate, setpoint);
     }
 #endif
     float itermDelta = errorRate * dT;
 
     // No accumulation if axis saturated
-    if (pidAxisSaturated(FD_YAW)) {
-        if (Ierr[FD_YAW] * itermDelta > 0) // Same sign and not zero
+    if (pidAxisSaturated(axis)) {
+        if (Ierr[axis] * itermDelta > 0) // Same sign and not zero
             itermDelta = 0;
     }
 
     // Calculate I-component - Ki NOT included in Ierr
-    Ierr[FD_YAW] = constrainf(Ierr[FD_YAW] + itermDelta, -errorLimit[FD_YAW], errorLimit[FD_YAW]);
-    pidData[FD_YAW].I = pidCoefficient[FD_YAW].Ki * Ierr[FD_YAW];
+    Ierr[axis] = constrainf(Ierr[axis] + itermDelta, -errorLimit[axis], errorLimit[axis]);
+    pidData[axis].I = pidCoefficient[axis].Ki * Ierr[axis];
 
     // Apply I-term decay
 #ifdef USE_ITERM_DECAY
     if (!isSpooledUp()) {
-        Ierr[FD_YAW] -= Ierr[FD_YAW] * itermDecay;
+        Ierr[axis] -= Ierr[axis] * itermDecay;
     }
 #endif
 
 
-  //// F-term (HPF / BW-limited D)
-
-    // Calculate F-term
-    float Fterm = (setpoint - Fint) * Ftau;
-    Fint += Fterm;
+  //// F-term
 
     // Calculate feedforward component
-    pidData[FD_YAW].F = pidCoefficient[FD_YAW].Kf * Fterm;
+    pidData[axis].F = pidCoefficient[axis].Kf * setpoint;
 
 
   //// PID Sum
 
     // Calculate PID sum
-    pidData[FD_YAW].Sum = pidData[FD_YAW].P + pidData[FD_YAW].I + pidData[FD_YAW].D + pidData[FD_YAW].F;
+    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
 
     // Save data
-    pidSetPoint[FD_YAW] = setpoint;
+    pidSetPoint[axis] = setpoint;
 }
 
 
@@ -871,9 +875,205 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
  **
  ** MODE 2
  **
+ **   gyro ADC => errorFilter => Kp => P-term
+ **   gyro ADC => errorFilter => dtermFilter => Kd => D-term
+ **   gyro ADC => errorFilter => Relax => Ki => I-term
+ **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
 static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_t axis)
+{
+    // Rate setpoint
+    float setpoint = getSetpointRate(axis);
+
+#ifdef USE_ACC
+    // Apply leveling
+    if (FLIGHT_MODE(ANGLE_MODE | HORIZON_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
+        setpoint = pidLevelApply(axis, setpoint);
+    }
+#ifdef USE_ACRO_TRAINER
+    else {
+        // Apply trainer
+        setpoint = acroTrainerApply(axis, setpoint);
+    }
+#endif
+#endif
+
+    // Get filtered gyro rate
+    float gyroRate = gyro.gyroADCf[axis];
+
+    // Calculate error rate
+    float errorRate = setpoint - gyroRate;
+
+    // Limit error bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        errorRate = pt1FilterApply(&errorFilter[axis], errorRate);
+    }
+
+
+  //// P-term
+
+    // Calculate P-component
+    pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
+
+
+  //// D-term
+
+    // Calculate D-term with bandwidth limit
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
+
+    // Calculate D-component
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm;
+
+
+  //// I-term
+
+    // Apply I-term relax
+#ifdef USE_ITERM_RELAX
+    if (itermRelax) {
+        errorRate = applyItermRelax(axis, Ierr[axis], errorRate, gyroRate, setpoint);
+    }
+#endif
+    float itermDelta = errorRate * dT;
+
+    // No accumulation if axis saturated
+    if (pidAxisSaturated(axis)) {
+        if (Ierr[axis] * itermDelta > 0) // Same sign and not zero
+            itermDelta = 0;
+    }
+
+    // Calculate I-component - Ki NOT included in Ierr
+    Ierr[axis] = constrainf(Ierr[axis] + itermDelta, -errorLimit[axis], errorLimit[axis]);
+    pidData[axis].I = pidCoefficient[axis].Ki * Ierr[axis];
+
+    // Apply I-term error decay
+#ifdef USE_ITERM_DECAY
+    if (!isSpooledUp()) {
+        Ierr[axis] -= Ierr[axis] * itermDecay;
+    }
+#endif
+
+
+  //// F-term
+
+    // Calculate feedforward component
+    float fterm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fterm -= pt1FilterApply(&ftermFilter[axis], setpoint);
+    }
+    pidData[axis].F = pidCoefficient[axis].Kf * fterm;
+
+
+  //// PID Sum
+
+    // Calculate PID sum
+    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
+
+    // Save data
+    pidSetPoint[axis] = setpoint;
+}
+
+
+static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
+{
+    const uint8_t axis = FD_YAW;
+
+    // Rate setpoint
+    float setpoint = getSetpointRate(axis);
+
+    // Get filtered gyro rate
+    float gyroRate = gyro.gyroADCf[axis];
+
+    // Calculate I-error rate
+    float errorRate = setpoint - gyroRate;
+
+    // Limit error bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        errorRate = pt1FilterApply(&errorFilter[axis], errorRate);
+    }
+
+
+  //// P-term
+
+    // Calculate P-component
+    pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
+
+
+  //// D-term
+
+    // Calculate D-term with bandwidth limit
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
+
+    // Calculate D-component
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm *
+      ((dterm < 0) ? tailCWStopGain : tailCCWStopGain);
+
+
+  //// I-term
+
+    // Apply I-term relax
+#ifdef USE_ITERM_RELAX
+    if (itermRelax) {
+        errorRate = applyItermRelax(axis, Ierr[axis], errorRate, gyroRate, setpoint);
+    }
+#endif
+    float itermDelta = errorRate * dT;
+
+    // No accumulation if axis saturated
+    if (pidAxisSaturated(axis)) {
+        if (Ierr[axis] * itermDelta > 0) // Same sign and not zero
+            itermDelta = 0;
+    }
+
+    // Calculate I-component - Ki NOT included in Ierr
+    Ierr[axis] = constrainf(Ierr[axis] + itermDelta, -errorLimit[axis], errorLimit[axis]);
+    pidData[axis].I = pidCoefficient[axis].Ki * Ierr[axis];
+
+    // Apply I-term decay
+#ifdef USE_ITERM_DECAY
+    if (!isSpooledUp()) {
+        Ierr[axis] -= Ierr[axis] * itermDecay;
+    }
+#endif
+
+
+  //// F-term (HPF / BW-limited D)
+
+    // Calculate F-term
+    float fterm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fterm -= pt1FilterApply(&ftermFilter[axis], setpoint);
+    }
+
+    // Calculate feedforward component
+    pidData[axis].F = pidCoefficient[axis].Kf * fterm;
+
+
+  //// PID Sum
+
+    // Calculate PID sum
+    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
+
+    // Save data
+    pidSetPoint[axis] = setpoint;
+}
+
+
+/** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+ **
+ ** MODE 3
+ **
+ **   gyroDterm ADC => Kp => P-term
+ **   gyroDterm ADC => dtermFilter => Kd => D-term
+ **   gyro ADC      => errorFilter => Relax => Ki => I-term
+ **
+ ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
+
+static FAST_CODE void pidApplyCyclicMode3(const pidProfile_t *pidProfile, uint8_t axis)
 {
     // Rate setpoint
     float setpoint = getSetpointRate(axis);
@@ -907,11 +1107,12 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dtermDeriv = (errorRate - Dint[axis]) * Dtau[axis];
-    Dint[axis] += dtermDeriv;
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
 
     // Calculate D-component
-    pidData[axis].D = pidCoefficient[axis].Kd * dtermDeriv;
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm;
 
 
   //// I-term
@@ -923,7 +1124,7 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
     float itermErrorRate = setpoint - itermGyroRate;
 
     // Limit error bandwidth
-    if (pidProfile->error_filter_hz[axis]) {
+    if (pidProfile->error_cutoff[axis]) {
         itermErrorRate = pt1FilterApply(&errorFilter[axis], itermErrorRate);
     }
 
@@ -956,7 +1157,11 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
   //// F-term
 
     // Calculate feedforward component
-    pidData[axis].F = pidCoefficient[axis].Kf * setpoint;
+    float fterm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fterm -= pt1FilterApply(&ftermFilter[axis], setpoint);
+    }
+    pidData[axis].F = pidCoefficient[axis].Kf * fterm;
 
 
   //// PID Sum
@@ -969,13 +1174,15 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
 }
 
 
-static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
+static FAST_CODE void pidApplyYawMode3(const pidProfile_t *pidProfile)
 {
+    const uint8_t axis = FD_YAW;
+
     // Rate setpoint
-    float setpoint = getSetpointRate(FD_YAW);
+    float setpoint = getSetpointRate(axis);
 
     // Get filtered gyro rate
-    float gyroRate = gyro.gyroDtermADCf[FD_YAW];
+    float gyroRate = gyro.gyroDtermADCf[axis];
 
     // Calculate error rate
     float errorRate = setpoint - gyroRate;
@@ -984,76 +1191,77 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
   //// P-term
 
     // Calculate P-component
-    pidData[FD_YAW].P = pidCoefficient[FD_YAW].Kp * errorRate;
+    pidData[axis].P = pidCoefficient[axis].Kp * errorRate;
 
 
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dtermDeriv = (errorRate - Dint[FD_YAW]) * Dtau[FD_YAW];
-    Dint[FD_YAW] += dtermDeriv;
+    float dError = pt1FilterApply(&dtermFilter[axis], errorRate);
+    float dterm = (dError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dError;
 
     // Calculate D-component
-    pidData[FD_YAW].D = pidCoefficient[FD_YAW].Kd * dtermDeriv *
-      ((dtermDeriv > 0) ? tailCWStopGain : tailCCWStopGain);
+    pidData[axis].D = pidCoefficient[axis].Kd * dterm *
+      ((dterm < 0) ? tailCWStopGain : tailCCWStopGain);
 
 
   //// I-term
 
     // Get filtered gyro rate
-    float itermGyroRate = gyro.gyroADCf[FD_YAW];
+    float itermGyroRate = gyro.gyroADCf[axis];
 
     // Error rate for I-term
     float itermErrorRate = setpoint - itermGyroRate;
 
     // Limit error bandwidth
-    if (pidProfile->error_filter_hz[FD_YAW]) {
-        itermErrorRate = pt1FilterApply(&errorFilter[FD_YAW], itermErrorRate);
+    if (pidProfile->error_cutoff[axis]) {
+        itermErrorRate = pt1FilterApply(&errorFilter[axis], itermErrorRate);
     }
 
 #ifdef USE_ITERM_RELAX
     // Apply I-term relax
     if (itermRelax) {
-        itermErrorRate = applyItermRelax(FD_YAW, Ierr[FD_YAW], itermErrorRate, itermGyroRate, setpoint);
+        itermErrorRate = applyItermRelax(axis, Ierr[axis], itermErrorRate, itermGyroRate, setpoint);
     }
 #endif
     float itermDelta = itermErrorRate * dT;
 
     // No accumulation if axis saturated
-    if (pidAxisSaturated(FD_YAW)) {
-        if (Ierr[FD_YAW] * itermDelta > 0) // Same sign and not zero
+    if (pidAxisSaturated(axis)) {
+        if (Ierr[axis] * itermDelta > 0) // Same sign and not zero
             itermDelta = 0;
     }
 
     // Calculate I-component - Ki NOT included in Ierr
-    Ierr[FD_YAW] = constrainf(Ierr[FD_YAW] + itermDelta, -errorLimit[FD_YAW], errorLimit[FD_YAW]);
-    pidData[FD_YAW].I = pidCoefficient[FD_YAW].Ki * Ierr[FD_YAW];
+    Ierr[axis] = constrainf(Ierr[axis] + itermDelta, -errorLimit[axis], errorLimit[axis]);
+    pidData[axis].I = pidCoefficient[axis].Ki * Ierr[axis];
 
     // Apply I-term decay
 #ifdef USE_ITERM_DECAY
     if (!isSpooledUp()) {
-        Ierr[FD_YAW] -= Ierr[FD_YAW] * itermDecay;
+        Ierr[axis] -= Ierr[axis] * itermDecay;
     }
 #endif
 
 
   //// F-term (HPF / BW-limited D)
 
-    // Calculate F-term
-    float Fterm = (setpoint - Fint) * Ftau;
-    Fint += Fterm;
-
     // Calculate feedforward component
-    pidData[FD_YAW].F = pidCoefficient[FD_YAW].Kf * Fterm;
+    float fterm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fterm -= pt1FilterApply(&ftermFilter[axis], setpoint);
+    }
+    pidData[axis].F = pidCoefficient[axis].Kf * fterm;
 
 
   //// PID Sum
 
     // Calculate PID sum
-    pidData[FD_YAW].Sum = pidData[FD_YAW].P + pidData[FD_YAW].I + pidData[FD_YAW].D + pidData[FD_YAW].F;
+    pidData[axis].Sum = pidData[axis].P + pidData[axis].I + pidData[axis].D + pidData[axis].F;
 
     // Save data
-    pidSetPoint[FD_YAW] = setpoint;
+    pidSetPoint[axis] = setpoint;
 }
 
 
@@ -1090,6 +1298,9 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             break;
 
         case 3:
+            pidApplyCyclicMode3(pidProfile, FD_ROLL);
+            pidApplyCyclicMode3(pidProfile, FD_PITCH);
+            pidApplyYawMode3(pidProfile);
             break;
     }
 
