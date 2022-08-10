@@ -1399,22 +1399,25 @@ static bool blackboxWriteSysinfo(void)
                                                                             currentPidProfile->pid[PID_YAW].D,
                                                                             currentPidProfile->pid[PID_YAW].F);
 
-        BLACKBOX_PRINT_HEADER_LINE("rollTune", "%d,%d,%d",                  currentPidProfile->pid[PID_ROLL].Gain,
-                                                                            currentPidProfile->pid[PID_ROLL].PI_balance,
-                                                                            currentPidProfile->pid[PID_ROLL].PD_balance);
-        BLACKBOX_PRINT_HEADER_LINE("pitchTune", "%d,%d,%d",                 currentPidProfile->pid[PID_PITCH].Gain,
-                                                                            currentPidProfile->pid[PID_PITCH].PI_balance,
-                                                                            currentPidProfile->pid[PID_PITCH].PD_balance);
-        BLACKBOX_PRINT_HEADER_LINE("yawTune", "%d,%d,%d",                   currentPidProfile->pid[PID_YAW].Gain,
-                                                                            currentPidProfile->pid[PID_YAW].PI_balance,
-                                                                            currentPidProfile->pid[PID_YAW].PD_balance);
+        BLACKBOX_PRINT_HEADER_LINE("rollTune", "%d,%d,%d",                  currentPidProfile->pid[PID_ROLL].PID_gain,
+                                                                            currentPidProfile->pid[PID_ROLL].PI_gain,
+                                                                            currentPidProfile->pid[PID_ROLL].PD_gain);
+        BLACKBOX_PRINT_HEADER_LINE("pitchTune", "%d,%d,%d",                 currentPidProfile->pid[PID_PITCH].PID_gain,
+                                                                            currentPidProfile->pid[PID_PITCH].PI_gain,
+                                                                            currentPidProfile->pid[PID_PITCH].PD_gain);
+        BLACKBOX_PRINT_HEADER_LINE("yawTune", "%d,%d,%d",                   currentPidProfile->pid[PID_YAW].PID_gain,
+                                                                            currentPidProfile->pid[PID_YAW].PI_gain,
+                                                                            currentPidProfile->pid[PID_YAW].PD_gain);
 
-        BLACKBOX_PRINT_HEADER_LINE("pid_error_filter", "%d,%d,%d",          currentPidProfile->error_filter_hz[PID_ROLL],
-                                                                            currentPidProfile->error_filter_hz[PID_PITCH],
-                                                                            currentPidProfile->error_filter_hz[PID_YAW]);
+        BLACKBOX_PRINT_HEADER_LINE("pid_error_cutoff", "%d,%d,%d",          currentPidProfile->error_cutoff[PID_ROLL],
+                                                                            currentPidProfile->error_cutoff[PID_PITCH],
+                                                                            currentPidProfile->error_cutoff[PID_YAW]);
         BLACKBOX_PRINT_HEADER_LINE("dterm_cutoff", "%d,%d,%d",              currentPidProfile->dterm_cutoff[PID_ROLL],
                                                                             currentPidProfile->dterm_cutoff[PID_PITCH],
                                                                             currentPidProfile->dterm_cutoff[PID_YAW]);
+        BLACKBOX_PRINT_HEADER_LINE("fterm_cutoff", "%d,%d,%d",              currentPidProfile->fterm_cutoff[PID_ROLL],
+                                                                            currentPidProfile->fterm_cutoff[PID_PITCH],
+                                                                            currentPidProfile->fterm_cutoff[PID_YAW]);
 
         BLACKBOX_PRINT_HEADER_LINE("iterm_limit", "%d",                     currentPidProfile->iterm_limit);
         BLACKBOX_PRINT_HEADER_LINE("iterm_decay", "%d",                     currentPidProfile->iterm_decay);
