@@ -101,9 +101,9 @@ typedef struct pidf_s {
     uint16_t D;
     uint16_t F;
 
-    uint16_t Gain;
-    uint16_t PI_balance;
-    uint16_t PD_balance;
+    uint16_t PID_gain;
+    uint16_t PI_gain;
+    uint16_t PD_gain;
 
 } pidf_t;
 
@@ -141,9 +141,9 @@ typedef struct pidProfile_s
 
     uint8_t   debug_axis;                     // The axis for which debugging values are captured
 
-    uint8_t   error_filter_hz[XYZ_AXIS_COUNT];  // Additional filtering on PID error
-
+    uint8_t   error_cutoff[XYZ_AXIS_COUNT];   // Additional filtering on PID error
     uint8_t   dterm_cutoff[XYZ_AXIS_COUNT];
+    uint8_t   fterm_cutoff[XYZ_AXIS_COUNT];
 
     uint8_t   angle_level_strength;
     uint8_t   angle_level_limit;              // Max angle in degrees in level mode
