@@ -101,9 +101,9 @@ typedef struct pidf_s {
     uint16_t D;
     uint16_t F;
 
-    uint16_t Gain;
-    uint16_t PI_balance;
-    uint16_t PD_balance;
+    uint16_t PID_gain;
+    uint16_t PI_gain;
+    uint16_t PD_gain;
 
 } pidf_t;
 

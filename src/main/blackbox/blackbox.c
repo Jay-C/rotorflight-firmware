@@ -1399,15 +1399,15 @@ static bool blackboxWriteSysinfo(void)
                                                                             currentPidProfile->pid[PID_YAW].D,
                                                                             currentPidProfile->pid[PID_YAW].F);
 
-        BLACKBOX_PRINT_HEADER_LINE("rollTune", "%d,%d,%d",                  currentPidProfile->pid[PID_ROLL].Gain,
-                                                                            currentPidProfile->pid[PID_ROLL].PI_balance,
-                                                                            currentPidProfile->pid[PID_ROLL].PD_balance);
-        BLACKBOX_PRINT_HEADER_LINE("pitchTune", "%d,%d,%d",                 currentPidProfile->pid[PID_PITCH].Gain,
-                                                                            currentPidProfile->pid[PID_PITCH].PI_balance,
-                                                                            currentPidProfile->pid[PID_PITCH].PD_balance);
-        BLACKBOX_PRINT_HEADER_LINE("yawTune", "%d,%d,%d",                   currentPidProfile->pid[PID_YAW].Gain,
-                                                                            currentPidProfile->pid[PID_YAW].PI_balance,
-                                                                            currentPidProfile->pid[PID_YAW].PD_balance);
+        BLACKBOX_PRINT_HEADER_LINE("rollTune", "%d,%d,%d",                  currentPidProfile->pid[PID_ROLL].PID_gain,
+                                                                            currentPidProfile->pid[PID_ROLL].PI_gain,
+                                                                            currentPidProfile->pid[PID_ROLL].PD_gain);
+        BLACKBOX_PRINT_HEADER_LINE("pitchTune", "%d,%d,%d",                 currentPidProfile->pid[PID_PITCH].PID_gain,
+                                                                            currentPidProfile->pid[PID_PITCH].PI_gain,
+                                                                            currentPidProfile->pid[PID_PITCH].PD_gain);
+        BLACKBOX_PRINT_HEADER_LINE("yawTune", "%d,%d,%d",                   currentPidProfile->pid[PID_YAW].PID_gain,
+                                                                            currentPidProfile->pid[PID_YAW].PI_gain,
+                                                                            currentPidProfile->pid[PID_YAW].PD_gain);
 
         BLACKBOX_PRINT_HEADER_LINE("pid_error_filter", "%d,%d,%d",          currentPidProfile->error_filter_hz[PID_ROLL],
                                                                             currentPidProfile->error_filter_hz[PID_PITCH],
