@@ -101,13 +101,13 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(YAW_D_GAIN,         PID,   0, 1000),
     ADJ_CONFIG(YAW_F_GAIN,         PID,   0, 1000),
 
-    ADJ_CONFIG(PITCH_GAIN,         PID,   0, 1000),
+    ADJ_CONFIG(PITCH_PID_GAIN,     PID,   0, 1000),
     ADJ_CONFIG(PITCH_PI_GAIN,      PID,   0, 1000),
     ADJ_CONFIG(PITCH_PD_GAIN,      PID,   0, 1000),
-    ADJ_CONFIG(ROLL_GAIN,          PID,   0, 1000),
+    ADJ_CONFIG(ROLL_PID_GAIN,      PID,   0, 1000),
     ADJ_CONFIG(ROLL_PI_GAIN,       PID,   0, 1000),
     ADJ_CONFIG(ROLL_PD_GAIN,       PID,   0, 1000),
-    ADJ_CONFIG(YAW_GAIN,           PID,   0, 1000),
+    ADJ_CONFIG(YAW_PID_GAIN,       PID,   0, 1000),
     ADJ_CONFIG(YAW_PI_GAIN,        PID,   0, 1000),
     ADJ_CONFIG(YAW_PD_GAIN,        PID,   0, 1000),
 
@@ -215,32 +215,32 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_F_GAIN:
         value = currentPidProfile->pid[PID_YAW].F;
         break;
-    case ADJUSTMENT_PITCH_GAIN:
-        value = currentPidProfile->pid[PID_PITCH].Gain;
+    case ADJUSTMENT_PITCH_PID_GAIN:
+        value = currentPidProfile->pid[PID_PITCH].PID_gain;
         break;
-    case ADJUSTMENT_ROLL_GAIN:
-        value = currentPidProfile->pid[PID_ROLL].Gain;
+    case ADJUSTMENT_ROLL_PID_GAIN:
+        value = currentPidProfile->pid[PID_ROLL].PID_gain;
         break;
-    case ADJUSTMENT_YAW_GAIN:
-        value = currentPidProfile->pid[PID_YAW].Gain;
+    case ADJUSTMENT_YAW_PID_GAIN:
+        value = currentPidProfile->pid[PID_YAW].PID_gain;
         break;
     case ADJUSTMENT_PITCH_PI_GAIN:
-        value = currentPidProfile->pid[PID_PITCH].PI_balance;
+        value = currentPidProfile->pid[PID_PITCH].PI_gain;
         break;
     case ADJUSTMENT_ROLL_PI_GAIN:
-        value = currentPidProfile->pid[PID_ROLL].PI_balance;
+        value = currentPidProfile->pid[PID_ROLL].PI_gain;
         break;
     case ADJUSTMENT_YAW_PI_GAIN:
-        value = currentPidProfile->pid[PID_YAW].PI_balance;
+        value = currentPidProfile->pid[PID_YAW].PI_gain;
         break;
     case ADJUSTMENT_PITCH_PD_GAIN:
-        value = currentPidProfile->pid[PID_PITCH].PD_balance;
+        value = currentPidProfile->pid[PID_PITCH].PD_gain;
         break;
     case ADJUSTMENT_ROLL_PD_GAIN:
-        value = currentPidProfile->pid[PID_ROLL].PD_balance;
+        value = currentPidProfile->pid[PID_ROLL].PD_gain;
         break;
     case ADJUSTMENT_YAW_PD_GAIN:
-        value = currentPidProfile->pid[PID_YAW].PD_balance;
+        value = currentPidProfile->pid[PID_YAW].PD_gain;
         break;
     case ADJUSTMENT_YAW_CENTER:
         value = currentPidProfile->yaw_center_offset;
@@ -395,32 +395,32 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_F_GAIN:
         currentPidProfile->pid[PID_YAW].F = value;
         break;
-    case ADJUSTMENT_PITCH_GAIN:
-        currentPidProfile->pid[PID_PITCH].Gain = value;
+    case ADJUSTMENT_PITCH_PID_GAIN:
+        currentPidProfile->pid[PID_PITCH].PID_gain = value;
         break;
-    case ADJUSTMENT_ROLL_GAIN:
-        currentPidProfile->pid[PID_ROLL].Gain = value;
+    case ADJUSTMENT_ROLL_PID_GAIN:
+        currentPidProfile->pid[PID_ROLL].PID_gain = value;
         break;
-    case ADJUSTMENT_YAW_GAIN:
-        currentPidProfile->pid[PID_YAW].Gain = value;
+    case ADJUSTMENT_YAW_PID_GAIN:
+        currentPidProfile->pid[PID_YAW].PID_gain = value;
         break;
     case ADJUSTMENT_PITCH_PI_GAIN:
-        currentPidProfile->pid[PID_PITCH].PI_balance = value;
+        currentPidProfile->pid[PID_PITCH].PI_gain = value;
         break;
     case ADJUSTMENT_ROLL_PI_GAIN:
-        currentPidProfile->pid[PID_ROLL].PI_balance = value;
+        currentPidProfile->pid[PID_ROLL].PI_gain = value;
         break;
     case ADJUSTMENT_YAW_PI_GAIN:
-        currentPidProfile->pid[PID_YAW].PI_balance = value;
+        currentPidProfile->pid[PID_YAW].PI_gain = value;
         break;
     case ADJUSTMENT_PITCH_PD_GAIN:
-        currentPidProfile->pid[PID_PITCH].PD_balance = value;
+        currentPidProfile->pid[PID_PITCH].PD_gain = value;
         break;
     case ADJUSTMENT_ROLL_PD_GAIN:
-        currentPidProfile->pid[PID_ROLL].PD_balance = value;
+        currentPidProfile->pid[PID_ROLL].PD_gain = value;
         break;
     case ADJUSTMENT_YAW_PD_GAIN:
-        currentPidProfile->pid[PID_YAW].PD_balance = value;
+        currentPidProfile->pid[PID_YAW].PD_gain = value;
         break;
     case ADJUSTMENT_YAW_CENTER:
         currentPidProfile->yaw_center_offset = value;
