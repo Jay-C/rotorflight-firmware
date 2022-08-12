@@ -465,7 +465,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_2:
-        return currentPidProfile->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].D != 0;
+        return true; //currentPidProfile->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].D != 0;
 
     case FLIGHT_LOG_FIELD_CONDITION_MAG:
 #ifdef USE_MAG
