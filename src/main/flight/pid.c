@@ -737,8 +737,8 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
 
   //// D-term
 
-    // Calculate D-term with bandwidth limit
-    float dterm = -(errorRate - Derr[axis]) * pidFrequency;
+    // Calculate D-term with bandwidth limit (note the sign)
+    float dterm = (Derr[axis] - errorRate) * pidFrequency;
     dterm = pt1FilterApply(&dtermFilter[axis], dterm);
     Derr[axis] = errorRate;
 
@@ -815,8 +815,8 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
 
   //// D-term
 
-    // Calculate D-term with bandwidth limit
-    float dterm = -(errorRate - Derr[FD_YAW]) * pidFrequency;
+    // Calculate D-term with bandwidth limit (note the sign)
+    float dterm = (Derr[FD_YAW] - errorRate) * pidFrequency;
     dterm = pt1FilterApply(&dtermFilter[FD_YAW], dterm);
     Derr[FD_YAW] = errorRate;
 
@@ -912,8 +912,8 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
 
   //// D-term
 
-    // Calculate D-term with bandwidth limit
-    float dterm = -(errorRate - Derr[axis]) * pidFrequency;
+    // Calculate D-term with bandwidth limit (note the sign)
+    float dterm = (Derr[axis] - errorRate) * pidFrequency;
     dterm = pt1FilterApply(&dtermFilter[axis], dterm);
     Derr[axis] = errorRate;
 
@@ -996,8 +996,8 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
 
   //// D-term
 
-    // Calculate D-term with bandwidth limit
-    float dterm = -(errorRate - Derr[FD_YAW]) * pidFrequency;
+    // Calculate D-term with bandwidth limit (note the sign)
+    float dterm = (Derr[FD_YAW] - errorRate) * pidFrequency;
     dterm = pt1FilterApply(&dtermFilter[FD_YAW], dterm);
     Derr[FD_YAW] = errorRate;
 
