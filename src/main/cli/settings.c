@@ -1037,7 +1037,6 @@ const clivalue_t valueTable[] = {
     { "ff_boost",                   VAR_UINT8 | PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50 }, PG_PID_PROFILE, offsetof(pidProfile_t, ff_boost) },
 #endif
 
-    { "yaw_ff_cutoff",                  VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ff_cutoff) },
     { "yaw_center_offset",              VAR_INT16  | PROFILE_VALUE, .config.minmax = { -250, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_center_offset) },
     { "yaw_cw_stop_gain",               VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 25, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cw_stop_gain) },
     { "yaw_ccw_stop_gain",              VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 25, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ccw_stop_gain) },
