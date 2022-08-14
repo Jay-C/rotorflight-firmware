@@ -177,7 +177,6 @@ typedef struct pidProfile_s
     uint8_t   ff_smooth_factor;               // Amount of smoothing for interpolated FF steps
     uint8_t   ff_boost;                       // amount of high-pass filtered FF to add to FF, 100 means 100% added
 
-    uint8_t   yaw_ff_cutoff;                  // Feedforward term cutoff freq
     int16_t   yaw_center_offset;              // Yaw zero offset
     uint8_t   yaw_cw_stop_gain;               // Yaw clockwise stop gain
     uint8_t   yaw_ccw_stop_gain;              // Yaw counter-clockwise stop gain
