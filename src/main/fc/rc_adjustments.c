@@ -113,8 +113,17 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(YAW_PI_GAIN,        PID,   0, 1000),
     ADJ_CONFIG(YAW_PD_GAIN,        PID,   0, 1000),
 
-    ADJ_CONFIG(YAW_CENTER,         PID,  -250, 250),
+    ADJ_CONFIG(PITCH_ERROR_CUTOFF, PID,   0, 250),
+    ADJ_CONFIG(PITCH_DTERM_CUTOFF, PID,   0, 250),
+    ADJ_CONFIG(PITCH_FTERM_CUTOFF, PID,   0, 250),
+    ADJ_CONFIG(ROLL_ERROR_CUTOFF,  PID,   0, 250),
+    ADJ_CONFIG(ROLL_DTERM_CUTOFF,  PID,   0, 250),
+    ADJ_CONFIG(ROLL_FTERM_CUTOFF,  PID,   0, 250),
+    ADJ_CONFIG(YAW_ERROR_CUTOFF,   PID,   0, 250),
+    ADJ_CONFIG(YAW_DTERM_CUTOFF,   PID,   0, 250),
+    ADJ_CONFIG(YAW_FTERM_CUTOFF,   PID,   0, 250),
 
+    ADJ_CONFIG(YAW_CENTER,         PID,  -250, 250),
     ADJ_CONFIG(YAW_CW_GAIN,        PID,   0, 250),
     ADJ_CONFIG(YAW_CCW_GAIN,       PID,   0, 250),
     ADJ_CONFIG(YAW_CYCLIC_FF,      PID,   0, 2500),
@@ -181,6 +190,37 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_RC_EXPO:
         value = currentControlRateProfile->rcExpo[FD_YAW];
         break;
+
+    case ADJUSTMENT_PITCH_ERROR_CUTOFF:
+        value = currentPidProfile->error_cutoff[PID_PITCH];
+        break;
+    case ADJUSTMENT_ROLL_ERROR_CUTOFF:
+        value = currentPidProfile->error_cutoff[PID_ROLL];
+        break;
+    case ADJUSTMENT_YAW_ERROR_CUTOFF:
+        value = currentPidProfile->error_cutoff[PID_YAW];
+        break;
+
+    case ADJUSTMENT_PITCH_DTERM_CUTOFF:
+        value = currentPidProfile->dterm_cutoff[PID_PITCH];
+        break;
+    case ADJUSTMENT_ROLL_DTERM_CUTOFF:
+        value = currentPidProfile->dterm_cutoff[PID_ROLL];
+        break;
+    case ADJUSTMENT_YAW_DTERM_CUTOFF:
+        value = currentPidProfile->dterm_cutoff[PID_YAW];
+        break;
+
+    case ADJUSTMENT_PITCH_FTERM_CUTOFF:
+        value = currentPidProfile->fterm_cutoff[PID_PITCH];
+        break;
+    case ADJUSTMENT_ROLL_FTERM_CUTOFF:
+        value = currentPidProfile->fterm_cutoff[PID_ROLL];
+        break;
+    case ADJUSTMENT_YAW_FTERM_CUTOFF:
+        value = currentPidProfile->fterm_cutoff[PID_YAW];
+        break;
+
     case ADJUSTMENT_PITCH_P_GAIN:
         value = currentPidProfile->pid[PID_PITCH].P;
         break;
@@ -190,6 +230,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_P_GAIN:
         value = currentPidProfile->pid[PID_YAW].P;
         break;
+
     case ADJUSTMENT_PITCH_I_GAIN:
         value = currentPidProfile->pid[PID_PITCH].I;
         break;
@@ -199,6 +240,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_I_GAIN:
         value = currentPidProfile->pid[PID_YAW].I;
         break;
+
     case ADJUSTMENT_PITCH_D_GAIN:
         value = currentPidProfile->pid[PID_PITCH].D;
         break;
@@ -208,6 +250,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_D_GAIN:
         value = currentPidProfile->pid[PID_YAW].D;
         break;
+
     case ADJUSTMENT_PITCH_F_GAIN:
         value = currentPidProfile->pid[PID_PITCH].F;
         break;
@@ -217,6 +260,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_F_GAIN:
         value = currentPidProfile->pid[PID_YAW].F;
         break;
+
     case ADJUSTMENT_PITCH_PID_GAIN:
         value = currentPidProfile->pid[PID_PITCH].PID_gain;
         break;
@@ -226,6 +270,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_PID_GAIN:
         value = currentPidProfile->pid[PID_YAW].PID_gain;
         break;
+
     case ADJUSTMENT_PITCH_PI_GAIN:
         value = currentPidProfile->pid[PID_PITCH].PI_gain;
         break;
@@ -235,6 +280,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_PI_GAIN:
         value = currentPidProfile->pid[PID_YAW].PI_gain;
         break;
+
     case ADJUSTMENT_PITCH_PD_GAIN:
         value = currentPidProfile->pid[PID_PITCH].PD_gain;
         break;
@@ -244,6 +290,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_PD_GAIN:
         value = currentPidProfile->pid[PID_YAW].PD_gain;
         break;
+
     case ADJUSTMENT_YAW_CENTER:
         value = currentPidProfile->yaw_center_offset;
         break;
@@ -262,18 +309,21 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_IMPULSE_FF:
         value = currentPidProfile->yaw_collective_ff_impulse_gain;
         break;
+
     case ADJUSTMENT_PITCH_COLL_FF:
         value = currentPidProfile->pitch_collective_ff_gain;
         break;
     case ADJUSTMENT_PITCH_IMPULSE_FF:
         value = currentPidProfile->pitch_collective_ff_impulse_gain;
         break;
+
     case ADJUSTMENT_RESCUE_COLLECTIVE:
         value = currentPidProfile->rescue_collective;
         break;
     case ADJUSTMENT_RESCUE_COLL_BOOST:
         value = currentPidProfile->rescue_boost;
         break;
+
     case ADJUSTMENT_ANGLE_LEVEL_GAIN:
         value = currentPidProfile->angle_level_strength;
         break;
@@ -283,6 +333,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_ACRO_TRAINER_GAIN:
         value = currentPidProfile->acro_trainer_gain;
         break;
+
     case ADJUSTMENT_GOV_GAIN:
         value = currentPidProfile->gov_gain;
         break;
@@ -307,9 +358,11 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_GOV_COLLECTIVE_FF:
         value = currentPidProfile->gov_collective_ff_weight;
         break;
+
     case ADJUSTMENT_SWASH_PHASE:
         value = mixerConfig()->swash_phase;
         break;
+
     case ADJUSTMENT_RATE_PROFILE:
         value = getCurrentControlRateProfileIndex() + 1;
         break;
@@ -361,6 +414,37 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_RC_EXPO:
         currentControlRateProfile->rcExpo[FD_YAW] = value;
         break;
+
+    case ADJUSTMENT_PITCH_ERROR_CUTOFF:
+        currentPidProfile->error_cutoff[PID_PITCH] = value;
+        break;
+    case ADJUSTMENT_ROLL_ERROR_CUTOFF:
+        currentPidProfile->error_cutoff[PID_ROLL] = value;
+        break;
+    case ADJUSTMENT_YAW_ERROR_CUTOFF:
+        currentPidProfile->error_cutoff[PID_YAW] = value;
+        break;
+
+    case ADJUSTMENT_PITCH_DTERM_CUTOFF:
+        currentPidProfile->dterm_cutoff[PID_PITCH] = value;
+        break;
+    case ADJUSTMENT_ROLL_DTERM_CUTOFF:
+        currentPidProfile->dterm_cutoff[PID_ROLL] = value;
+        break;
+    case ADJUSTMENT_YAW_DTERM_CUTOFF:
+        currentPidProfile->dterm_cutoff[PID_YAW] = value;
+        break;
+
+    case ADJUSTMENT_PITCH_FTERM_CUTOFF:
+        currentPidProfile->fterm_cutoff[PID_PITCH] = value;
+        break;
+    case ADJUSTMENT_ROLL_FTERM_CUTOFF:
+        currentPidProfile->fterm_cutoff[PID_ROLL] = value;
+        break;
+    case ADJUSTMENT_YAW_FTERM_CUTOFF:
+        currentPidProfile->fterm_cutoff[PID_YAW] = value;
+        break;
+
     case ADJUSTMENT_PITCH_P_GAIN:
         currentPidProfile->pid[PID_PITCH].P = value;
         break;
@@ -370,6 +454,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_P_GAIN:
         currentPidProfile->pid[PID_YAW].P = value;
         break;
+
     case ADJUSTMENT_PITCH_I_GAIN:
         currentPidProfile->pid[PID_PITCH].I = value;
         break;
@@ -379,6 +464,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_I_GAIN:
         currentPidProfile->pid[PID_YAW].I = value;
         break;
+
     case ADJUSTMENT_PITCH_D_GAIN:
         currentPidProfile->pid[PID_PITCH].D = value;
         break;
@@ -388,6 +474,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_D_GAIN:
         currentPidProfile->pid[PID_YAW].D = value;
         break;
+
     case ADJUSTMENT_PITCH_F_GAIN:
         currentPidProfile->pid[PID_PITCH].F = value;
         break;
@@ -397,6 +484,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_F_GAIN:
         currentPidProfile->pid[PID_YAW].F = value;
         break;
+
     case ADJUSTMENT_PITCH_PID_GAIN:
         currentPidProfile->pid[PID_PITCH].PID_gain = value;
         break;
@@ -406,6 +494,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_PID_GAIN:
         currentPidProfile->pid[PID_YAW].PID_gain = value;
         break;
+
     case ADJUSTMENT_PITCH_PI_GAIN:
         currentPidProfile->pid[PID_PITCH].PI_gain = value;
         break;
@@ -415,6 +504,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_PI_GAIN:
         currentPidProfile->pid[PID_YAW].PI_gain = value;
         break;
+
     case ADJUSTMENT_PITCH_PD_GAIN:
         currentPidProfile->pid[PID_PITCH].PD_gain = value;
         break;
@@ -424,6 +514,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_PD_GAIN:
         currentPidProfile->pid[PID_YAW].PD_gain = value;
         break;
+
     case ADJUSTMENT_YAW_CENTER:
         currentPidProfile->yaw_center_offset = value;
         break;
@@ -442,18 +533,21 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_IMPULSE_FF:
         currentPidProfile->yaw_collective_ff_impulse_gain = value;
         break;
+
     case ADJUSTMENT_PITCH_COLL_FF:
         currentPidProfile->pitch_collective_ff_gain = value;
         break;
     case ADJUSTMENT_PITCH_IMPULSE_FF:
         currentPidProfile->pitch_collective_ff_impulse_gain = value;
         break;
+
     case ADJUSTMENT_RESCUE_COLLECTIVE:
         currentPidProfile->rescue_collective = value;
         break;
     case ADJUSTMENT_RESCUE_COLL_BOOST:
         currentPidProfile->rescue_boost = value;
         break;
+
     case ADJUSTMENT_ANGLE_LEVEL_GAIN:
         currentPidProfile->angle_level_strength = value;
         break;
@@ -463,6 +557,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_ACRO_TRAINER_GAIN:
         currentPidProfile->acro_trainer_gain = value;
         break;
+
     case ADJUSTMENT_GOV_GAIN:
         currentPidProfile->gov_gain = value;
         break;
@@ -487,9 +582,11 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_GOV_COLLECTIVE_FF:
         currentPidProfile->gov_collective_ff_weight = value;
         break;
+
     case ADJUSTMENT_SWASH_PHASE:
         mixerConfigMutable()->swash_phase = value;
         break;
+
     case ADJUSTMENT_RATE_PROFILE:
         changeControlRateProfile(value - 1);
         break;
