@@ -92,9 +92,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
         },
         .pid_mode = 1,
         .debug_axis = FD_ROLL,
-        .error_cutoff = { 40, 40, 150 },
+        .error_cutoff = {  0,  0,  0 },
         .dterm_cutoff = { 20, 20, 40 },
-        .fterm_cutoff = { 10, 10, 0 },
+        .fterm_cutoff = { 10, 10,  0 },
         .angle_level_strength = 50,
         .angle_level_limit = 55,
         .horizon_level_strength = 50,
@@ -120,7 +120,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .ff_max_rate_limit = 100,
         .ff_smooth_factor = 37,
         .ff_boost = 15,
-        .yaw_ff_cutoff = 20,
         .yaw_center_offset = 0,
         .yaw_cw_stop_gain = 50,
         .yaw_ccw_stop_gain = 50,
@@ -1306,7 +1305,7 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             pidApplyYawMode2(pidProfile);
             break;
 
-        case 3:
+        default:
             pidApplyCyclicMode3(pidProfile, FD_ROLL);
             pidApplyCyclicMode3(pidProfile, FD_PITCH);
             pidApplyYawMode3(pidProfile);
