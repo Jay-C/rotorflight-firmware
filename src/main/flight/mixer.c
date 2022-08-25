@@ -38,6 +38,7 @@
 
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/agc.h"
 #include "flight/mixer.h"
 #include "flight/governor.h"
 #include "flight/leveling.h"
@@ -264,6 +265,9 @@ void mixerUpdate(void)
 
     // Fetch input values
     mixerUpdateInputs();
+
+    // Update AGC
+    agcUpdateGains();
 
     // Current flight mode bitmap
     uint32_t flightModeMask = ((uint32_t)(~flightModeFlags)) << 16 | flightModeFlags;

@@ -48,6 +48,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/agc.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/motors.h"
@@ -145,6 +146,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .gov_tta_limit = 0,
         .gov_cyclic_ff_weight = 40,
         .gov_collective_ff_weight = 100,
+        .agc_rate = 10000,
+        .agc_freq = 20,
+        .agc_delay = 20,
     );
 }
 
@@ -412,6 +416,9 @@ void pidInitProfile(const pidProfile_t *pidProfile)
 
     // PID filters
     pidInitFilters(pidProfile);
+
+    // ADC init
+    agcInit(pidProfile);
 }
 
 void pidInit(const pidProfile_t *pidProfile)
