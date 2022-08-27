@@ -70,6 +70,7 @@ typedef enum {
     PID_ROLL,
     PID_PITCH,
     PID_YAW,
+    PID_WAY,
     PID_ITEM_COUNT
 } pidIndex_e;
 
