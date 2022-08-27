@@ -70,8 +70,11 @@ typedef enum {
     PID_ROLL,
     PID_PITCH,
     PID_YAW,
+    PID_WAY,
     PID_ITEM_COUNT
 } pidIndex_e;
+
+#define PID_AXIS_COUNT 3
 
 typedef enum {
     ITERM_RELAX_OFF,

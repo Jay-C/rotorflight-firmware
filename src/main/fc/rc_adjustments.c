@@ -100,6 +100,10 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(YAW_I_GAIN,         PID,   0, 1000),
     ADJ_CONFIG(YAW_D_GAIN,         PID,   0, 1000),
     ADJ_CONFIG(YAW_F_GAIN,         PID,   0, 1000),
+    ADJ_CONFIG(WAY_P_GAIN,         PID,   0, 1000),
+    ADJ_CONFIG(WAY_I_GAIN,         PID,   0, 1000),
+    ADJ_CONFIG(WAY_D_GAIN,         PID,   0, 1000),
+    ADJ_CONFIG(WAY_F_GAIN,         PID,   0, 1000),
 
     ADJ_CONFIG(PITCH_PID_GAIN,     PID,   0, 1000),
     ADJ_CONFIG(PITCH_PI_GAIN,      PID,   0, 1000),
@@ -228,6 +232,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_P_GAIN:
         value = currentPidProfile->pid[PID_YAW].P;
         break;
+    case ADJUSTMENT_WAY_P_GAIN:
+        value = currentPidProfile->pid[PID_WAY].P;
+        break;
 
     case ADJUSTMENT_PITCH_I_GAIN:
         value = currentPidProfile->pid[PID_PITCH].I;
@@ -237,6 +244,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         break;
     case ADJUSTMENT_YAW_I_GAIN:
         value = currentPidProfile->pid[PID_YAW].I;
+        break;
+    case ADJUSTMENT_WAY_I_GAIN:
+        value = currentPidProfile->pid[PID_WAY].I;
         break;
 
     case ADJUSTMENT_PITCH_D_GAIN:
@@ -248,6 +258,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
     case ADJUSTMENT_YAW_D_GAIN:
         value = currentPidProfile->pid[PID_YAW].D;
         break;
+    case ADJUSTMENT_WAY_D_GAIN:
+        value = currentPidProfile->pid[PID_WAY].D;
+        break;
 
     case ADJUSTMENT_PITCH_F_GAIN:
         value = currentPidProfile->pid[PID_PITCH].F;
@@ -257,6 +270,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         break;
     case ADJUSTMENT_YAW_F_GAIN:
         value = currentPidProfile->pid[PID_YAW].F;
+        break;
+    case ADJUSTMENT_WAY_F_GAIN:
+        value = currentPidProfile->pid[PID_WAY].F;
         break;
 
     case ADJUSTMENT_PITCH_PID_GAIN:
@@ -452,6 +468,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_P_GAIN:
         currentPidProfile->pid[PID_YAW].P = value;
         break;
+    case ADJUSTMENT_WAY_P_GAIN:
+        currentPidProfile->pid[PID_WAY].P = value;
+        break;
 
     case ADJUSTMENT_PITCH_I_GAIN:
         currentPidProfile->pid[PID_PITCH].I = value;
@@ -461,6 +480,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
         break;
     case ADJUSTMENT_YAW_I_GAIN:
         currentPidProfile->pid[PID_YAW].I = value;
+        break;
+    case ADJUSTMENT_WAY_I_GAIN:
+        currentPidProfile->pid[PID_WAY].I = value;
         break;
 
     case ADJUSTMENT_PITCH_D_GAIN:
@@ -472,6 +494,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     case ADJUSTMENT_YAW_D_GAIN:
         currentPidProfile->pid[PID_YAW].D = value;
         break;
+    case ADJUSTMENT_WAY_D_GAIN:
+        currentPidProfile->pid[PID_WAY].D = value;
+        break;
 
     case ADJUSTMENT_PITCH_F_GAIN:
         currentPidProfile->pid[PID_PITCH].F = value;
@@ -481,6 +506,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
         break;
     case ADJUSTMENT_YAW_F_GAIN:
         currentPidProfile->pid[PID_YAW].F = value;
+        break;
+    case ADJUSTMENT_WAY_F_GAIN:
+        currentPidProfile->pid[PID_WAY].F = value;
         break;
 
     case ADJUSTMENT_PITCH_PID_GAIN:
