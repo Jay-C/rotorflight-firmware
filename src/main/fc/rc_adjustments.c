@@ -62,11 +62,9 @@ PG_REGISTER_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRange
 
 static adjustmentState_t adjustmentStates[MAX_ADJUSTMENT_RANGE_COUNT];
 
-#if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
-static timeMs_t       osdAdjustmentTime   = 0;
-static const char *   osdAdjustmentName   = NULL;
-static int            osdAdjustmentValue  = 0;
-#endif
+static timeMs_t       adjustmentTime   = 0;
+static const char *   adjustmentName   = NULL;
+static int            adjustmentValue  = 0;
 
 #define ADJ_CONFIG(id, type, min, max)  [ADJUSTMENT_##id] = \
     {                                                       \
@@ -622,11 +620,9 @@ static void blackboxAdjustmentEvent(uint8_t adjFunc, int newValue)
 #endif
 }
 
-#if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
-
 #define OSD_DISPLAY_LATENCY_MS 2500
 
-static void updateOsdAdjustmentData(uint8_t adjFunc, int newValue)
+static void updateAdjustmentData(uint8_t adjFunc, int newValue)
 {
     const timeMs_t now = millis();
 
@@ -637,17 +633,15 @@ static void updateOsdAdjustmentData(uint8_t adjFunc, int newValue)
         adjFunc != ADJUSTMENT_PID_PROFILE &&
         adjFunc != ADJUSTMENT_RATE_PROFILE)
     {
-        osdAdjustmentTime = now;
-        osdAdjustmentName = adjustmentConfigs[adjFunc].cfgName;
-        osdAdjustmentValue = newValue;
+        adjustmentTime = now;
+        adjustmentName = adjustmentConfigs[adjFunc].cfgName;
+        adjustmentValue = newValue;
     }
 
-    if (cmp32(now, osdAdjustmentTime) > OSD_DISPLAY_LATENCY_MS) {
-        osdAdjustmentName = NULL;
-        osdAdjustmentValue = 0;
+    if (cmp32(now, adjustmentTime) > OSD_DISPLAY_LATENCY_MS) {
+        adjustmentName = NULL;
     }
 }
-#endif
 
 #define REPEAT_STEP_FREQ  (1000 / 2)
 
@@ -703,9 +697,7 @@ void processRcAdjustments(void)
                     setConfigDirty();
                     beeperConfirmationBeeps(1);
                     blackboxAdjustmentEvent(adjFunc, newValue);
-#if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
-                    updateOsdAdjustmentData(adjFunc, newValue);
-#endif
+                    updateAdjustmentData(adjFunc, newValue);
                     adjState->timer = now + REPEAT_STEP_FREQ;
                     adjState->value = newValue;
 
@@ -725,24 +717,20 @@ void processRcAdjustments(void)
         mixerInitSwash();
     }
 
-#if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
     if (!changed) {
-        updateOsdAdjustmentData(ADJUSTMENT_NONE, 0);
+        updateAdjustmentData(ADJUSTMENT_NONE, 0);
     }
-#endif
 }
 
-#if defined(USE_OSD) && defined(USE_OSD_ADJUSTMENTS)
 const char *getAdjustmentsRangeName(void)
 {
-    return osdAdjustmentName;
+    return adjustmentName;
 }
 
 int getAdjustmentsRangeValue(void)
 {
-    return osdAdjustmentValue;
+    return adjustmentValue;
 }
-#endif
 
 void adjustmentRangeInit(void)
 {
