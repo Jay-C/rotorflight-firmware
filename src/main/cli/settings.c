@@ -958,6 +958,8 @@ const clivalue_t valueTable[] = {
     { "pid_debug_axis",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_PID_DEBUG_AXIS }, PG_PID_PROFILE, offsetof(pidProfile_t, debug_axis) },
     { "pid_mode",                   VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 6 }, PG_PID_PROFILE, offsetof(pidProfile_t, pid_mode) },
 
+    { "dterm_mode",                 VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1 }, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_mode) },
+
     { "iterm_rotation",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_rotation) },
 #if defined(USE_ITERM_RELAX)
     { "iterm_relax",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ITERM_RELAX }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax) },

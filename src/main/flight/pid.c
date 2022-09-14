@@ -1248,8 +1248,9 @@ static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
   //// D-term
 
     // Calculate D-term
-    float dtermDelta = (errorRate - Derr[axis]) * pidFrequency;
-    Derr[axis] = errorRate;
+    float dtermError = (pidProfile->dterm_mode) ? errorRate : -gyro.gyroADCf[axis];
+    float dtermDelta = (dtermError - Derr[axis]) * pidFrequency;
+    Derr[axis] = dtermError;
 
     // Filter D-term * Kd
     dtermDelta = pt1FilterApply(&dtermFilter[axis], pidCoefficient[index].Kd * dtermDelta);
